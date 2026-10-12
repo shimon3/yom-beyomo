@@ -355,7 +355,11 @@ const LOADERS = {
       else if(B && B.seg>1) await take(B.book, B.ch, 1, B.seg);
     }
     if(!rows.length) throw new Error("לא נמצא טקסט התניא");
-    return {sub:heBook || "תניא", groups:group(rows,"פרק"), src:srcs.slice(0,1)};
+    const f = rows[0], l = rows[rows.length-1], name = (heBook || "תניא").replace(/^תניא,\s*/,"");
+    const range = f.c===l.c
+      ? `${name} ${gem(f.c)}, ${f.v===l.v ? gem(f.v) : gem(f.v)+"–"+gem(l.v)}`
+      : `${name} ${gem(f.c)}:${gem(f.v)} – ${gem(l.c)}:${gem(l.v)}`;
+    return {sub:range, groups:group(rows,"פרק"), src:srcs.slice(0,1)};
   },
   async rambam3(ctx){ return rambam(ctx, 7); },
   async rambam1(ctx){ return rambam(ctx, 6); },
