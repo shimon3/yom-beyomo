@@ -34,3 +34,7 @@ Hayom Yom et la brochure « Dvar Malkhout » ne sont pas reproduits : le site re
 
 Projet relié à ce dépôt GitHub. Réglages : *Framework preset* = None, *Build command* = vide, *Build output directory* = `/`.
 Chaque `git push` sur `main` republie le site.
+
+## Licence
+
+Code sous licence MIT (voir `LICENSE`). Les textes chargés depuis Sefaria gardent leurs propres licences (tableau ci-dessus).

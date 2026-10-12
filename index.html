@@ -6,6 +6,16 @@
 <title>יום ביומו</title>
 <meta name="description" content="הלימוד היומי: חומש עם רש״י, תהילים, תניא, רמב״ם, משנה ודף יומי">
 <meta name="theme-color" content="#1a2133">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="יום ביומו">
+<meta property="og:title" content="יום ביומו — חת״ת ושיעורים יומיים">
+<meta property="og:description" content="חומש עם רש״י, תהילים, תניא, רמב״ם, משנה ודף יומי — כל יום, בדף אחד">
+<meta property="og:url" content="https://yom-beyomo.pages.dev/">
+<meta property="og:image" content="https://yom-beyomo.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="he_IL">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -497,8 +507,14 @@ async function prefetch(days){
   for(let i=0;i<days;i++){
     const iso = addDays(start,i);
     for(const s of visible()){
-      try{ await loadSection(s.id, iso); ok++; }catch{ fail++; }
+      let done = false;
+      for(let attempt=0; attempt<3 && !done; attempt++){
+        try{ await loadSection(s.id, iso); done = true; }
+        catch{ await new Promise(r=>setTimeout(r, 4000*(attempt+1))); }
+      }
+      done ? ok++ : fail++;
       msg.textContent = `נשמרו ${ok} מתוך ${total}…`;
+      await new Promise(r=>setTimeout(r, 700)); /* stay gentle with Sefaria */
     }
   }
   msg.textContent = fail ? `נשמרו ${ok} שיעורים, ${fail} נכשלו` : `נשמרו כל ${ok} השיעורים ל־${days} ימים`;
