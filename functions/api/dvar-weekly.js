@@ -4,12 +4,15 @@ import { requireStatsAccess } from "../_access.js";
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{
  status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"private, no-store","x-robots-tag":"noindex","x-content-type-options":"nosniff"}
 });
+let metadataCache=null;
+let metadataCacheExpiry=0;
 export async function onRequestGet({request,env}){
  if(env.DVAR_PRIVATE_PREVIEW_ENABLED!=="true")return reply({error:"preview-disabled"},503);
  const denied=await requireStatsAccess(request,{
   ACCESS_TEAM_DOMAIN:env.ACCESS_TEAM_DOMAIN,ACCESS_AUD:env.DVAR_PRIVATE_ACCESS_AUD
  });
  if(denied)return denied;
+ if(metadataCache && Date.now()<metadataCacheExpiry) return reply(metadataCache);
  try{
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),4500);
@@ -56,8 +59,10 @@ export async function onRequestGet({request,env}){
    releaseDate:englishDate?.[0]||null,
    source:"https://dvarmalchus.com/"
   }:null;
-  return reply({status:edition?"metadata-found":"not-confirmed",edition,
-   pdfPreviewEnabled:Boolean(edition&&pdfUrl),pdfUrl:edition?pdfUrl:null,checkedAt:new Date().toISOString()});
+  const result={status:edition?"metadata-found":"not-confirmed",edition,
+   pdfPreviewEnabled:Boolean(edition&&pdfUrl),pdfUrl:edition?pdfUrl:null,checkedAt:new Date().toISOString()};
+  if(edition&&pdfUrl){metadataCache=result;metadataCacheExpiry=Date.now()+600000;}
+  return reply(result);
  }catch(err){
   const name = String(err?.name || "UnknownError").slice(0,48);
   const message = String(err?.message || "").slice(0,180);
