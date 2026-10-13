@@ -43,3 +43,35 @@ Chaque `git push` sur `main` republie le site.
 ## Licence
 
 Code sous licence MIT (voir `LICENSE`). Les textes chargés depuis Sefaria gardent leurs propres licences (tableau ci-dessus).
+
+## Statistiques privées (`/stats`)
+
+La page et l'API `/api/stats` sont protégées côté serveur par vérification de signature
+JWT **Cloudflare Access** (RS256, JWKS, audience, émetteur et expiration).
+**Fail-closed** : sans configuration Access valide, elles répondent 503/403 et aucune donnée n'est divulguée.
+La page ne doit pas être mise en ligne avant configuration et test de l'application Access.
+
+1. Dans **Cloudflare Zero Trust → Access → Applications**, créer une application **Self-hosted**
+   couvrant **yom-beyomo.pages.dev/stats** et **yom-beyomo.pages.dev/api/stats**
+   (ou deux applications partageant la même audience si Cloudflare le permet, sinon adapter la validation).
+   Définir une policy **Allow** limitée à votre adresse email exacte, avec une méthode d'identification sécurisée.
+   Ne pas utiliser une policy Allow Everyone.
+2. Dans les **variables d'environnement Cloudflare Pages** du projet, définir :
+   - `ACCESS_TEAM_DOMAIN` : URL complète `https://<team>.cloudflareaccess.com` sans slash final.
+   - `ACCESS_AUD` : **Application AUD tag** de l'application Access protégeant les deux URLs.
+   Ne jamais mettre ces valeurs dans l'HTML. Le JWT n'est pas conservé dans D1.
+3. Dans **Workers & Pages → D1 → yom-beyomo → Console**, inspecter en lecture seule :
+   `SELECT name FROM sqlite_master WHERE type='table'`,
+   `PRAGMA table_info(visits)`, `PRAGMA table_info(feedback)`.
+   Tables attendues par le code existant :
+   `visits(day, uid, lang, city, standalone)` avec unicité `(day,uid)` ;
+   `feedback(created, uid, rating, message, contact, lang, page)`.
+   Cette modification ne crée aucune table, n'efface rien et n'ajoute aucune migration.
+4. Tester sans authentification `/stats` et `/api/stats` : aucun chiffre ni message privé ne doit être rendu.
+   Puis authentifié : consulter graphiques, langues, villes sélectionnées et avis ; tester une erreur D1.
+   Vérifier l'absence de cache public pour les réponses et l'absence d'indexation.
+
+**Portée des mesures :** le script de visite n'enregistre au maximum qu'une visite par appareil/jour
+(si DNT désactivé et requête réussie). `COUNT(DISTINCT uid)` approxime des appareils,
+pas des personnes. Le tableau affiche les 90 dernières journées présentes en base,
+et les 100 derniers avis. Les coordonnées de contact des avis ne sont accessibles qu'aux administrateurs authentifiés.
