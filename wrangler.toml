@@ -1,0 +1,10 @@
+# Cloudflare Pages configuration (read automatically on each Git deployment)
+name = "yom-beyomo"
+pages_build_output_dir = "."
+compatibility_date = "2026-09-01"
+
+# Anonymous usage counts + user feedback
+[[d1_databases]]
+binding = "DB"
+database_name = "yom-beyomo"
+database_id = "99b46c17-4715-4e11-a296-1feceb15317d"
