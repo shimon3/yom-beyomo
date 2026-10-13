@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דבר מלכות · יום ביומו</title>
+<meta name="robots" content="noindex">
+<style>
+:root{color-scheme:light;font-family:system-ui,Arial,sans-serif;background:#f6f7fa;color:#1a2133}
+*{box-sizing:border-box}body{margin:0}main{max-width:1050px;margin:auto;padding:1rem}
+header{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+h1{font-size:clamp(1.4rem,4vw,2rem)}a{color:#725017}
+.panel{background:#fff;border:1px solid #dde1ea;border-radius:12px;padding:1rem;margin:1rem 0}
+.viewer{width:100%;height:min(78vh,900px);min-height:430px;border:1px solid #dde1ea;border-radius:8px}
+.notice{line-height:1.8}button{border:1px solid #dde1ea;border-radius:8px;padding:.6rem 1rem;background:#fff;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.small{color:#5b6479;font-size:.9rem}
+</style>
+</head>
+<body><main>
+<header><h1>דבר מלכות · Dvar Malkhout</h1><a href="/">← חזרה ליום ביומו · Retour</a></header>
+<section class="panel">
+<p class="notice">החוברת השבועית תוצג כאן, לאחר אימות הרשאת ההצגה באתר זה. הספרון משתנה בכל שבוע, ואין התאמה מאומתת עדיין לעמוד של כל יום.</p>
+<p class="small" lang="fr" dir="ltr">Lecteur intégré prévu pour la brochure hebdomadaire officielle. L'affichage reste désactivé tant que l'autorisation d'intégration et une URL PDF officielle stable ne sont pas confirmées. Aucune page quotidienne n'est supposée.</p>
+<div id="reader" hidden>
+<iframe class="viewer" title="Lecteur PDF דבר מלכות" referrerpolicy="no-referrer" loading="lazy"></iframe>
+</div>
+<p id="status" role="status">PDF לא זמין עדיין · PDF non disponible pour le moment.</p>
+</section>
+</main>
+<script>
+// Activate only after verifying the publisher's permission and the official weekly PDF URL.
+// No PDF copies, proxies, scraping, or third-party PDF viewer are used.
+const APPROVED_OFFICIAL_PDF_URL = "";
+if (APPROVED_OFFICIAL_PDF_URL) {
+ try {
+  const url = new URL(APPROVED_OFFICIAL_PDF_URL);
+  if(url.protocol==="https:" && ["dvarmalchus.org","dvarmalchus.com"].includes(url.hostname) &&
+      url.pathname.toLowerCase().endsWith(".pdf")) {
+   document.querySelector("#reader iframe").src=url.href+"#toolbar=1";
+   document.querySelector("#reader").hidden=false;
+   document.querySelector("#status").textContent="אם המסמך אינו מוצג, ייתכן שהאתר המקורי חוסם הצגה בתוך אתר אחר.";
+  }
+ } catch {}
+}
+</script></body></html>
