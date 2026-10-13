@@ -16,9 +16,10 @@ export async function onRequestGet({request,env}){
   let source;
   try{
    source=await fetch("https://dvarmalchus.com/",{
-     signal:controller.signal,redirect:"error",headers:{"accept":"text/html"}
+     signal:controller.signal,redirect:"manual",headers:{"accept":"text/html"}
    });
   }finally{clearTimeout(timeout);}
+  if(source.status>=300 && source.status<400) return reply({status:"source-redirect",upstreamStatus:source.status},502);
   if(!source.ok) return reply({status:"source-http-error",upstreamStatus:source.status},502);
   if(!(source.headers.get("content-type")||"").toLowerCase().includes("text/html"))
    return reply({status:"source-not-html"},502);
