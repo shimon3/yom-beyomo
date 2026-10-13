@@ -16,6 +16,9 @@ const PAGE=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta nam
 <section><h2>Visites quotidiennes · 90 derniers jours enregistrés</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Visites</th><th>Appareils</th><th>Volume</th></tr></thead><tbody id="daily"></tbody></table></div></section>
 <section><h2>Langues</h2><div class="scroll"><table><thead><tr><th>Langue</th><th>Visites</th></tr></thead><tbody id="languages"></tbody></table></div></section>
 <section><h2>Villes sélectionnées dans les réglages</h2><p class="note">Ce ne sont pas des données de géolocalisation.</p><div class="scroll"><table><thead><tr><th>Ville</th><th>Visites</th></tr></thead><tbody id="cities"></tbody></table></div></section>
+<section><h2>Rubriques consultées · 30 derniers jours</h2><p class="note">Ouvertures approximatives par session, sans identifiants personnels.</p><div class="scroll"><table><thead><tr><th>Rubrique</th><th>Consultations</th></tr></thead><tbody id="section-events"></tbody></table></div></section>
+<section><h2>Erreurs de chargement · 30 derniers jours</h2><div class="scroll"><table><thead><tr><th>Rubrique</th><th>Échecs</th></tr></thead><tbody id="load-errors"></tbody></table></div></section>
+<section><h2>Utilisation par appareil · 30 derniers jours</h2><p class="note">Catégories estimées à partir de la largeur de l’écran, pas du modèle d’appareil.</p><div class="scroll"><table><thead><tr><th>Catégorie</th><th>Visites</th></tr></thead><tbody id="device-breakdown"></tbody></table></div></section>
 <section><h2>Avis (100 plus récents)</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Note</th><th>Message</th><th>Contact (privé)</th><th>Langue</th><th>Page</th></tr></thead><tbody id="feedback"></tbody></table></div></section>
 <script nonce="stats2026">
 const $=id=>document.getElementById(id);
@@ -31,8 +34,13 @@ async function run(){
  fill("daily",data.daily,x=>[x.day,x.visits,x.devices,("▰".repeat(Math.max(1,Math.round(x.visits/max*16))))]);
  fill("languages",data.languages,x=>[x.name,x.visits]);
  fill("cities",data.cities,x=>[x.name,x.visits]);
+ const a=data.analytics||{};
+ fill("section-events",a.sections||[],x=>[x.label,x.visits]);
+ fill("load-errors",a.errors||[],x=>[x.label,x.failures]);
+ fill("device-breakdown",a.devices||[],x=>[x.device,x.visits]);
  fill("feedback",data.feedback,x=>[x.created,x.rating,x.message,x.contact,x.lang,x.page]);
- $("status").textContent="Données chargées.";
+ if(!a.ready) $("status").textContent="Tables de statistiques à initialiser dans D1.";
+ if(a.ready) $("status").textContent="Données chargées.";
  }catch(e){$("status").textContent="Erreur de chargement : "+e.message;}
 }
 run();
