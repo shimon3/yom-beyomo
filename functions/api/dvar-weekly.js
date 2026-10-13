@@ -15,7 +15,7 @@ export async function onRequestGet({request,env}){
   const timeout=setTimeout(()=>controller.abort(),4500);
   let source;
   try{
-   source=await fetch("https://dvarmalchus.org/",{
+   source=await fetch("https://dvarmalchus.com/",{
      signal:controller.signal,redirect:"error",headers:{"accept":"text/html"}
    });
   }finally{clearTimeout(timeout);}
@@ -34,10 +34,13 @@ export async function onRequestGet({request,env}){
   // Detect publication mention without guessing a PDF URL, page or region.
   const dateMatch=clean.match(/(\d{1,2})\s*[-–]\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(20\d{2})/);
   const titleMatch=clean.match(/(?:###\s*)?([א-ת״"'\s]{2,28}תשפ[״"׳']?[א-ת])/);
-  const edition=dateMatch?{
-   label:titleMatch?.[1]?.trim()||null,
-   publishedDateRange:dateMatch[0],
-   source:"https://dvarmalchus.org/"
+  const weeklyTitle=clean.match(/([א-ת]{2,15}\s+תשפ[״"׳\x27]?[א-ת])/);
+  const englishDate=clean.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}/i);
+  const edition=(dateMatch||englishDate)?{
+   label:weeklyTitle?.[1]?.trim()||titleMatch?.[1]?.trim()||null,
+   publishedDateRange:dateMatch?.[0]||null,
+   releaseDate:englishDate?.[0]||null,
+   source:"https://dvarmalchus.com/"
   }:null;
   return reply({status:edition?"metadata-found":"not-confirmed",edition,
    pdfPreviewEnabled:false,pdfUrl:null,checkedAt:new Date().toISOString()});
