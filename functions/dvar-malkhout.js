@@ -30,7 +30,7 @@ export async function onRequestGet({ request, env }) {
 <script>
 let url=null;
 const weekly=document.getElementById('weekly');
-fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('unavailable');return r.json()}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Publication non confirmée automatiquement.';}).catch(()=>{weekly.textContent='Source indisponible ou identification non confirmée.';});
+fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>null);if(!d)return {status:'http-'+r.status};return d;}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Détection non confirmée ('+String(d.status||'unknown')+(d.upstreamStatus?' : '+d.upstreamStatus:'')+').';}).catch(()=>{weekly.textContent='La vérification n’a pas pu aboutir (network-error).';});
 const input=document.getElementById('pdf'),frame=document.getElementById('viewer'),status=document.getElementById('status');
 function clear(){frame.removeAttribute('src');frame.hidden=true;if(url){URL.revokeObjectURL(url);url=null;}input.value='';status.textContent='Aucun PDF sélectionné'}
 document.getElementById('clear').addEventListener('click',clear);
