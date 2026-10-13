@@ -20,7 +20,7 @@ export async function onRequestGet({request,env}){
   const data=await response.json();
   const entry=(data.calendar_items||[]).find(item=>item.title?.en==="Tanya Yomi"||item.title?.he==="תניא יומי");
   if(!entry?.ref||typeof entry.url!=="string")return json({status:"not-listed",date});
-  const sefariaUrl="https://www.sefaria.org/"+entry.url.replace(/^\\/+/, "");
+  const sefariaUrl="https://www.sefaria.org/"+entry.url.replace(/^\/+/, "");
   if(!sefariaUrl.startsWith("https://www.sefaria.org/"))return json({error:"invalid-source"},502);
   return json({status:"available",date,title:entry.displayValue?.he||entry.displayValue?.en||"תניא יומי",ref:entry.ref,heRef:entry.heRef||null,url:sefariaUrl,source:"Sefaria Calendar API"});
  }catch{return json({error:"sefaria-unavailable"},502);}
