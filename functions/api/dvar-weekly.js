@@ -37,6 +37,20 @@ export async function onRequestGet({request,env}){
   const titleMatch=clean.match(/(?:###\s*)?([א-ת״"'\s]{2,28}תשפ[״"׳']?[א-ת])/);
   const weeklyTitle=clean.match(/([א-ת]{2,15}\s+תשפ[״"׳\x27]?[א-ת])/);
   const englishDate=clean.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}/i);
+  // Extract only a publisher-hosted PDF URL associated with the current edition.
+  // The reader makes a direct browser request to the publisher; we never proxy or store PDF bytes.
+  const candidates=[...html.matchAll(/<a\\b[^>]*href=["']([^"']+\\.pdf(?:\\?[^"']*)?)["'][^>]*>/gi)];
+  let pdfUrl=null;
+  for(const candidate of candidates){
+   try{
+    const u=new URL(candidate[1].replace(/&amp;/g,"&"),"https://dvarmalchus.com/");
+    if(u.protocol==="https:" && u.hostname==="dvarmalchus.com" &&
+       /^\\/Download\\/[0-9a-f-]+\\.pdf$/i.test(u.pathname) && !u.search && !u.hash) {
+      pdfUrl=u.href;
+      break;
+    }
+   }catch{}
+  }
   const edition=(dateMatch||englishDate)?{
    label:weeklyTitle?.[1]?.trim()||titleMatch?.[1]?.trim()||null,
    publishedDateRange:dateMatch?.[0]||null,
@@ -44,7 +58,7 @@ export async function onRequestGet({request,env}){
    source:"https://dvarmalchus.com/"
   }:null;
   return reply({status:edition?"metadata-found":"not-confirmed",edition,
-   pdfPreviewEnabled:false,pdfUrl:null,checkedAt:new Date().toISOString()});
+   pdfPreviewEnabled:Boolean(edition&&pdfUrl),pdfUrl:edition?pdfUrl:null,checkedAt:new Date().toISOString()});
  }catch(err){
   const name = String(err?.name || "UnknownError").slice(0,48);
   const message = String(err?.message || "").slice(0,180);
