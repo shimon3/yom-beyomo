@@ -1,68 +1,58 @@
 <!doctype html>
-<html lang="he" dir="rtl">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>דבר מלכות · יום ביומו</title>
-<meta name="robots" content="noindex">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דבר מלכות · יום ביומו</title><meta name="robots" content="noindex">
 <style>
-:root{color-scheme:light;font-family:system-ui,Arial,sans-serif;background:#f6f7fa;color:#1a2133}
-*{box-sizing:border-box}body{margin:0}main{max-width:1050px;margin:auto;padding:1rem}
-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+:root{font-family:system-ui,Arial,sans-serif;background:#f6f7fa;color:#1a2133;color-scheme:light}
+*{box-sizing:border-box}body{margin:0}main{max-width:1050px;margin:auto;padding:20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font-size:clamp(1.4rem,4vw,2rem)}a{color:#725017}
-.panel{background:#fff;border:1px solid #dde1ea;border-radius:12px;padding:1rem;margin:1rem 0}
-.viewer{width:100%;height:min(78vh,900px);min-height:430px;border:1px solid #dde1ea;border-radius:8px}
-.notice{line-height:1.8}button{border:1px solid #dde1ea;border-radius:8px;padding:.6rem 1rem;background:#fff;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
-.small{color:#5b6479;font-size:.9rem}
-</style>
-</head>
-<body><main>
+.panel{background:white;border:1px solid #dde1ea;border-radius:12px;padding:20px;margin:16px 0}
+.viewer{height:min(78vh,900px);min-height:440px;width:100%;border:1px solid #dde1ea;border-radius:9px}
+.small{font-size:.9rem;color:#5b6479;line-height:1.7}
+input,button{font:inherit}button{padding:8px 14px;border-radius:8px;border:1px solid #dde1ea;background:white;cursor:pointer}
+input[type=file]{max-width:100%;margin:12px 0}
+#reader{margin-top:12px}#status{overflow-wrap:anywhere}
+</style></head><body><main>
 <header><h1>דבר מלכות · Dvar Malkhout</h1><a href="/">← חזרה ליום ביומו · Retour</a></header>
 <section class="panel">
-<p class="notice">החוברת השבועית תוצג כאן, לאחר אימות הרשאת ההצגה באתר זה. הספרון משתנה בכל שבוע, ואין התאמה מאומתת עדיין לעמוד של כל יום.</p>
-<p class="small" lang="fr" dir="ltr">Lecteur intégré prévu pour la brochure hebdomadaire officielle. L'affichage reste désactivé tant que l'autorisation d'intégration et une URL PDF officielle stable ne sont pas confirmées. Aucune page quotidienne n'est supposée.</p>
-<div id="reader" hidden>
-<iframe class="viewer" title="Lecteur PDF דבר מלכות" referrerpolicy="no-referrer" loading="lazy"></iframe>
-</div>
-<p id="status" role="status">PDF לא זמין עדיין · PDF non disponible pour le moment.</p>
-<p class="small">מקורות רשמיים · Sources : <a href="https://dvarmalchus.org/" target="_blank" rel="noopener noreferrer">dvarmalchus.org</a> · <a href="https://dvarmalchus.com/" target="_blank" rel="noopener noreferrer">dvarmalchus.com</a></p>
+<h2>קריאת PDF אישי · Lecteur PDF personnel</h2>
+<p>בחרו קובץ PDF מהמכשיר כדי לקרוא אותו כאן. הקובץ אינו מועלה לאתר.</p>
+<p class="small" lang="fr" dir="ltr">Choisis un PDF sur ton appareil pour le lire directement ici. Il reste dans ton navigateur, sans transfert vers le site ni publication.</p>
+<label for="localPdf">PDF · קובץ מקומי</label>
+<div><input id="localPdf" type="file" accept=".pdf,application/pdf"></div>
+<button type="button" id="closePdf" hidden>סגירה · Fermer</button>
+<p id="status" role="status">קובץ לא נבחר · Aucun PDF sélectionné.</p>
+<div id="reader" hidden><iframe class="viewer" title="Lecteur PDF personnel" referrerpolicy="no-referrer"></iframe></div>
 </section>
-</main>
+<section class="panel">
+<h2>החוברת השבועית · Brochure hebdomadaire</h2>
+<p class="small" lang="fr" dir="ltr">L'affichage public des brochures officielles et leur récupération automatique ne sont pas activés en attendant l'autorisation écrite de l'éditeur. Aucun PDF n'est hébergé ici.</p>
+<p>המקורות הרשמיים · Sources officielles : <a href="https://dvarmalchus.org/" target="_blank" rel="noopener noreferrer">dvarmalchus.org</a> · <a href="https://dvarmalchus.com/" target="_blank" rel="noopener noreferrer">dvarmalchus.com</a></p>
+</section></main>
 <script>
-/*
- * Activation is conditional on written permission from the publisher.
- * No background download, scraping, storage or guessed URL is performed.
- * An administrator may add approved entries in dvar-malkhout-manifest.json.
- */
-(async () => {
- const status=document.querySelector("#status");
- try {
-  const response=await fetch("/dvar-malkhout-manifest.json",{cache:"no-store"});
-  if(!response.ok)throw Error("manifest-unavailable");
-  const manifest=await response.json();
-  if(manifest.publicDisplayAuthorized!==true){ return; }
-  const today=new Date();
-  const selectedDate=new URLSearchParams(location.search).get("d");
-  const date=/^\d{4}-\d{2}-\d{2}$/.test(selectedDate||"") &&
-    !Number.isNaN(Date.parse(selectedDate)) ? selectedDate : [
-     today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")
-    ].join("-");
-  const editions=Array.isArray(manifest.editions)?manifest.editions:[];
-  const active=editions.find(e=>e && e.approved===true &&
-     typeof e.start==="string" && typeof e.end==="string" &&
-     /^\d{4}-\d{2}-\d{2}$/.test(e.start) &&
-     /^\d{4}-\d{2}-\d{2}$/.test(e.end) &&
-     e.start<=date && date<=e.end &&
-     (e.region==="all" || (e.region==="israel" && manifest.defaultRegion==="israel") ||
-       (e.region==="diaspora" && manifest.defaultRegion==="diaspora")));
-  if(!active)return;
-  const url=new URL(active.pdfUrl);
-  if(url.protocol!=="https:" || !["dvarmalchus.org","dvarmalchus.com"].includes(url.hostname) ||
-    !url.pathname.toLowerCase().endsWith(".pdf") || url.username || url.password ||
-    url.search || url.hash)return;
-  document.querySelector("#reader iframe").src=url.href+"#toolbar=1";
-  document.querySelector("#reader").hidden=false;
-  status.textContent="חוברת השבוע · Brochure hebdomadaire : "+String(active.title||date);
- } catch { status.textContent="PDF לא זמין עדיין · PDF non disponible pour le moment."; }
-})();
+let objectUrl=null;
+const picker=document.querySelector("#localPdf");
+const box=document.querySelector("#reader");
+const frame=box.querySelector("iframe");
+const close=document.querySelector("#closePdf");
+const status=document.querySelector("#status");
+function clearPdf(){
+ frame.removeAttribute("src");
+ if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}
+ box.hidden=true;close.hidden=true;
+}
+picker.addEventListener("change",()=>{
+ clearPdf();
+ const file=picker.files?.[0];
+ if(!file){status.textContent="קובץ לא נבחר · Aucun PDF sélectionné.";return;}
+ if(!/\.pdf$/i.test(file.name) || (file.type && file.type!=="application/pdf") || !file.size || file.size>50*1024*1024){
+  picker.value="";status.textContent="PDF לא תקין · PDF invalide ou supérieur à 50 Mo.";return;
+ }
+ objectUrl=URL.createObjectURL(file);
+ frame.src=objectUrl+"#toolbar=1";
+ box.hidden=false;close.hidden=false;
+ status.textContent="PDF נטען · PDF ouvert localement : "+file.name;
+});
+close.addEventListener("click",()=>{clearPdf();picker.value="";status.textContent="קובץ לא נבחר · Aucun PDF sélectionné.";});
+window.addEventListener("pagehide",clearPdf);
 </script></body></html>
