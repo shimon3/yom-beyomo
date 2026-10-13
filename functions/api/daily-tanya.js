@@ -22,6 +22,22 @@ export async function onRequestGet({request,env}){
   if(!entry?.ref||typeof entry.url!=="string")return json({status:"not-listed",date});
   const sefariaUrl="https://www.sefaria.org/"+entry.url.replace(/^\/+/, "");
   if(!sefariaUrl.startsWith("https://www.sefaria.org/"))return json({error:"invalid-source"},502);
-  return json({status:"available",date,title:entry.displayValue?.he||entry.displayValue?.en||"תניא יומי",ref:entry.ref,heRef:entry.heRef||null,url:sefariaUrl,source:"Sefaria Calendar API"});
+  // Load the Hebrew source text only when its Sefaria version explicitly permits reuse.
+  const textUrl=new URL("https://www.sefaria.org/api/v3/texts/"+encodeURIComponent(entry.ref));
+  textUrl.searchParams.set("version","source");
+  textUrl.searchParams.set("return_format","text_only");
+  const textController=new AbortController();
+  const textTimeout=setTimeout(()=>textController.abort(),8000);
+  let textResponse;
+  try{textResponse=await fetch(textUrl.toString(),{redirect:"manual",signal:textController.signal,headers:{"accept":"application/json"}});}
+  finally{clearTimeout(textTimeout);}
+  if(!textResponse.ok)return json({status:"reference-only",date,ref:entry.ref},200);
+  const document=await textResponse.json();
+  const version=(document.versions||[]).find(v=>/^(public domain|cc0|cc-by(?:-sa)?(?: 4\\.0| 3\\.0)?)/i.test(String(v.license||"").trim()));
+  if(!version)return json({status:"reference-only",date,ref:entry.ref,reason:"license-not-confirmed"});
+  function flatten(value){if(typeof value==="string")return [value];if(Array.isArray(value))return value.flatMap(flatten);return [];}
+  const paragraphs=flatten(version.text).map(x=>x.replace(/<[^>]*>/g,"").trim()).filter(Boolean);
+  if(!paragraphs.length||paragraphs.join("").length>95000)return json({status:"reference-only",date,ref:entry.ref,reason:"text-unavailable"});
+  return json({status:"available",date,title:entry.displayValue?.he||entry.displayValue?.en||"תניא יומי",ref:entry.ref,heRef:entry.heRef||null,paragraphs,license:version.license,versionTitle:version.versionTitle||"",source:"Sefaria Calendar + Texts API"});
  }catch{return json({error:"sefaria-unavailable"},502);}
 }
