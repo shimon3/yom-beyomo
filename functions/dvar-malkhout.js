@@ -30,8 +30,7 @@ body{margin:0;background:#f6f7fa;color:#1a2133;font-family:system-ui,Arial,sans-
 <p><a class="button" id="officialLink" target="_blank" rel="noopener noreferrer" hidden>Télécharger la brochure officielle · הורדת הקובץ</a></p>
 <p class="muted">Le bouton mène directement au fichier hébergé chez l'éditeur. Aucun PDF n'est hébergé sur Yom Beyomo. Si le navigateur ouvre le document au lieu de le télécharger, utiliser son bouton Télécharger.</p>
 <hr><h2>תניא · Tanya du jour</h2><p id="tanyaStatus" role="status">Consultation du calendrier…</p>
-<p id="tanyaRef"></p><p><a id="tanyaLink" class="button" target="_blank" rel="noopener noreferrer" hidden>Lire le Tanya du jour sur Sefaria</a></p>
-<p class="muted">Le Tanya est indépendant de la brochure PDF et s'ouvre sur Sefaria.</p>
+<p id="tanyaRef"></p><article id="tanyaText" lang="he" dir="rtl" style="line-height:1.9;white-space:pre-line"></article><p class="muted" id="tanyaAttribution"></p>
 </div><aside><strong>לימוד יומי · Menu</strong><p id="hebrewDate"></p>
 <label><input type="checkbox" id="afterSunset"> Après le coucher du soleil (date suivante)</label>
 <button type="button" id="tanyaNav">תניא · Tanya du jour</button>
@@ -51,18 +50,18 @@ async function refreshTanya(){
  const id=++requestSerial,d=israelDay(),iso=d.toISOString().slice(0,10);
  el('hebrewDate').textContent=new Intl.DateTimeFormat('he-u-ca-hebrew',{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'}).format(d);
  el('tanyaStatus').textContent='Recherche du Tanya du '+iso+'…';
- el('tanyaLink').hidden=true;el('tanyaRef').textContent='';
+ el('tanyaText').replaceChildren();el('tanyaAttribution').textContent='';el('tanyaRef').textContent='';
  try{
   const response=await fetch('/api/daily-tanya?date='+encodeURIComponent(iso),{credentials:'same-origin',cache:'no-store'});
   const data=await response.json();
   if(id!==requestSerial)return;
   if(!response.ok||data.status!=='available')throw Error(data.error||data.status||'unavailable');
-  const u=new URL(data.url);
-  if(u.origin!=='https://www.sefaria.org')throw Error('invalid-url');
   el('tanyaRef').textContent=data.heRef||data.ref;
-  el('tanyaLink').href=u.href;el('tanyaLink').hidden=false;
-  el('tanyaStatus').textContent='Référence du jour identifiée.';
- }catch{if(id===requestSerial)el('tanyaStatus').textContent='Référence du Tanya indisponible : aucune page supposée.';}
+  if(!Array.isArray(data.paragraphs)||!data.paragraphs.length)throw Error('text-unavailable');
+  for(const paragraph of data.paragraphs){const p=document.createElement('p');p.textContent=paragraph;el('tanyaText').appendChild(p);}
+  el('tanyaAttribution').textContent='Source : Sefaria · '+(data.versionTitle||'texte hébreu')+' · Licence : '+(data.license||'non précisée');
+  el('tanyaStatus').textContent='Tanya du jour affiché directement.';
+ }catch{if(id===requestSerial)el('tanyaStatus').textContent='Texte du Tanya indisponible ou licence non vérifiée.';}
 }
 sunset.addEventListener('change',refreshTanya);
 el('tanyaNav').addEventListener('click',()=>el('tanyaStatus').scrollIntoView({behavior:'smooth',block:'center'}));
