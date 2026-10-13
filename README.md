@@ -75,3 +75,11 @@ La page ne doit pas être mise en ligne avant configuration et test de l'applica
 (si DNT désactivé et requête réussie). `COUNT(DISTINCT uid)` approxime des appareils,
 pas des personnes. Le tableau affiche les 90 dernières journées présentes en base,
 et les 100 derniers avis. Les coordonnées de contact des avis ne sont accessibles qu'aux administrateurs authentifiés.
+
+## Lecteur דבר מלכות (branche de préparation)
+
+Le lien `דבר מלכות` ouvre une page interne `/dvar-malkhout.html` au lieu d'un site externe.
+Le lecteur PDF est **désactivé par défaut** : le fournisseur indique que les téléchargements sont réservés à l'usage personnel (https://dvarmalchus.org/). Une autorisation explicite pour un affichage destiné aux visiteurs est à confirmer.
+Aucun PDF n'est recopié, hébergé, téléchargé par le serveur ou mis en cache par cette fonctionnalité.
+
+**Pour finir avant fusion :** obtenir l'autorisation de l'éditeur et une URL directe HTTPS officielle de PDF, vérifier sa compatibilité avec l'affichage en iframe (en-têtes CSP / X-Frame-Options), puis compléter `APPROVED_OFFICIAL_PDF_URL` dans `dvar-malkhout.html`. Pour l'affichage automatique, il faudra une source officielle fournissant chaque semaine une correspondance vérifiable entre date, édition Israël/diaspora et PDF; ne pas deviner les URLs ou pages du jour. Tester mobile et desktop et respecter les conditions de diffusion. Sans ces points, la page affiche honnêtement « PDF non disponible ».
