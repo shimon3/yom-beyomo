@@ -25,14 +25,14 @@ export async function onRequestGet({request,env}){
   if(length>750000)return reply({status:"source-too-large"},502);
   const html=await source.text();
   if(html.length>750000)return reply({status:"source-too-large"},502);
-  const clean=html.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi," ")
-   .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi," ")
+  const clean=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ")
+   .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ")
    .replace(/<[^>]*>/g," ").replace(/&(?:nbsp|#160);/gi," ")
    .replace(/&quot;/gi,'"').replace(/&amp;/gi,"&")
-   .replace(/\\s+/g," ");
+   .replace(/\s+/g," ");
   // Detect publication mention without guessing a PDF URL, page or region.
-  const dateMatch=clean.match(/(\\d{1,2})\\s*[-–]\\s*(\\d{1,2})\\s*\\/\\s*(\\d{1,2})\\s*\\/\\s*(20\\d{2})/);
-  const titleMatch=clean.match(/(?:###\\s*)?([א-ת״"'\\s]{2,28}תשפ[״"׳']?[א-ת])/);
+  const dateMatch=clean.match(/(\d{1,2})\s*[-–]\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(20\d{2})/);
+  const titleMatch=clean.match(/(?:###\s*)?([א-ת״"'\s]{2,28}תשפ[״"׳']?[א-ת])/);
   const edition=dateMatch?{
    label:titleMatch?.[1]?.trim()||null,
    publishedDateRange:dateMatch[0],
