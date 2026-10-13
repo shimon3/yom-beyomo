@@ -83,3 +83,9 @@ Le lecteur PDF est **désactivé par défaut** : le fournisseur indique que les 
 Aucun PDF n'est recopié, hébergé, téléchargé par le serveur ou mis en cache par cette fonctionnalité.
 
 **Pour finir avant fusion :** obtenir l'autorisation de l'éditeur et une URL directe HTTPS officielle de PDF, vérifier sa compatibilité avec l'affichage en iframe (en-têtes CSP / X-Frame-Options), puis compléter `APPROVED_OFFICIAL_PDF_URL` dans `dvar-malkhout.html`. Pour l'affichage automatique, il faudra une source officielle fournissant chaque semaine une correspondance vérifiable entre date, édition Israël/diaspora et PDF; ne pas deviner les URLs ou pages du jour. Tester mobile et desktop et respecter les conditions de diffusion. Sans ces points, la page affiche honnêtement « PDF non disponible ».
+
+### Préparation de la sélection hebdomadaire
+
+La page charge `/dvar-malkhout-manifest.json` avec refus par défaut : `publicDisplayAuthorized:false` et tableau `editions:[]`. Elle n'essaie **aucun téléchargement automatique** tant que l'autorisation et une source PDF officielle ne sont pas confirmées. Après autorisation documentée, une entrée peut être saisie manuellement dans le manifeste, par exemple avec `title`, `start`, `end` (dates ISO vérifiées), `region` (`israel`, `diaspora` ou `all`), `approved:true` et `pdfUrl` (URL HTTPS directe .pdf sur le domaine éditeur). La validation des droits et de la compatibilité iframe reste à faire. Le navigateur sélectionne une entrée en fonction du jour et de la région configurée ; aucune correspondance jour/page n'est supposée.
+
+Ne changer `publicDisplayAuthorized` à `true` qu'après accord de l'éditeur, vérification du lien direct et des contraintes de redistribution. L'éditeur décrit les téléchargements comme réservés à l'usage personnel : https://dvarmalchus.org/ . Les options futures d'administration ou de synchronisation ne doivent pas publier ni stocker de PDF avant cet accord.
