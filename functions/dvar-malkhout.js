@@ -30,7 +30,7 @@ export async function onRequestGet({ request, env }) {
 <script>
 let url=null;
 const weekly=document.getElementById('weekly');
-fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>null);if(!d)return {status:'http-'+r.status};return d;}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Détection non confirmée ('+String(d.status||'unknown')+(d.upstreamStatus?' : '+d.upstreamStatus:'')+(d.errorType?' · '+d.errorType:'')+(d.detail?' · '+d.detail:'')+').';}).catch(()=>{weekly.textContent='La vérification n’a pas pu aboutir (network-error).';});
+fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>null);if(!d)return {status:'http-'+r.status};return d;}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+(d.edition.label||'Édition non identifiée')+(d.edition.publishedDateRange?' · '+d.edition.publishedDateRange:'')+(d.edition.releaseDate?' · '+d.edition.releaseDate:'') : 'Détection non confirmée ('+String(d.status||'unknown')+(d.upstreamStatus?' : '+d.upstreamStatus:'')+(d.errorType?' · '+d.errorType:'')+(d.detail?' · '+d.detail:'')+').';}).catch(()=>{weekly.textContent='La vérification n’a pas pu aboutir (network-error).';});
 const input=document.getElementById('pdf'),frame=document.getElementById('viewer'),status=document.getElementById('status');
 function clear(){frame.removeAttribute('src');frame.hidden=true;if(url){URL.revokeObjectURL(url);url=null;}input.value='';status.textContent='Aucun PDF sélectionné'}
 document.getElementById('clear').addEventListener('click',clear);
