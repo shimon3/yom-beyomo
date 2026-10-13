@@ -29,42 +29,14 @@ body{margin:0;background:#f6f7fa;color:#1a2133;font-family:system-ui,Arial,sans-
 <p id="weekly" role="status">Recherche de la brochure officielle…</p>
 <p><a class="button" id="officialLink" target="_blank" rel="noopener noreferrer" hidden>Télécharger la brochure officielle · הורדת הקובץ</a></p>
 <p class="muted">Le bouton mène directement au fichier hébergé chez l'éditeur. Aucun PDF n'est hébergé sur Yom Beyomo. Si le navigateur ouvre le document au lieu de le télécharger, utiliser son bouton Télécharger.</p>
-<hr><h2>תניא · Tanya du jour</h2><p id="tanyaStatus" role="status">Consultation du calendrier…</p>
-<p id="tanyaRef"></p><article id="tanyaText" lang="he" dir="rtl" style="line-height:1.9;white-space:pre-line"></article><p class="muted" id="tanyaAttribution"></p>
-</div><aside><strong>לימוד יומי · Menu</strong><p id="hebrewDate"></p>
-<label><input type="checkbox" id="afterSunset"> Après le coucher du soleil (date suivante)</label>
-<button type="button" id="tanyaNav">תניא · Tanya du jour</button>
+</div><aside><strong>לימוד יומי · Menu</strong>
+
+
 <button type="button" id="downloadNav">דבר מלכות · Téléchargement</button>
-<p class="muted">Israël · changement automatique de date civile à minuit. Après le coucher du soleil, cocher l'option pour passer au jour hébraïque suivant.</p>
+
 </aside></div></main>
 <script>
 const el=id=>document.getElementById(id);
-const sunset=el('afterSunset');
-function israelDay(){
- const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
- const val=k=>Number(parts.find(x=>x.type===k).value);
- return new Date(Date.UTC(val('year'),val('month')-1,val('day')+(sunset.checked?1:0),12));
-}
-let requestSerial=0;
-async function refreshTanya(){
- const id=++requestSerial,d=israelDay(),iso=d.toISOString().slice(0,10);
- el('hebrewDate').textContent=new Intl.DateTimeFormat('he-u-ca-hebrew',{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'}).format(d);
- el('tanyaStatus').textContent='Recherche du Tanya du '+iso+'…';
- el('tanyaText').replaceChildren();el('tanyaAttribution').textContent='';el('tanyaRef').textContent='';
- try{
-  const response=await fetch('/api/daily-tanya?date='+encodeURIComponent(iso),{credentials:'same-origin',cache:'no-store'});
-  const data=await response.json();
-  if(id!==requestSerial)return;
-  if(!response.ok||data.status!=='available')throw Error(data.error||data.status||'unavailable');
-  el('tanyaRef').textContent=data.heRef||data.ref;
-  if(!Array.isArray(data.paragraphs)||!data.paragraphs.length)throw Error('text-unavailable');
-  for(const paragraph of data.paragraphs){const p=document.createElement('p');p.textContent=paragraph;el('tanyaText').appendChild(p);}
-  el('tanyaAttribution').textContent='Source : Sefaria · '+(data.versionTitle||'texte hébreu')+' · Licence : '+(data.license||'non précisée');
-  el('tanyaStatus').textContent='Tanya du jour affiché directement.';
- }catch{if(id===requestSerial)el('tanyaStatus').textContent='Texte du Tanya indisponible ou licence non vérifiée.';}
-}
-sunset.addEventListener('change',refreshTanya);
-el('tanyaNav').addEventListener('click',()=>el('tanyaStatus').scrollIntoView({behavior:'smooth',block:'center'}));
 el('downloadNav').addEventListener('click',()=>el('weekly').scrollIntoView({behavior:'smooth',block:'center'}));
 async function refreshWeekly(){
  try{
@@ -78,7 +50,7 @@ async function refreshWeekly(){
  el('officialLink').href=u.href;el('officialLink').hidden=false;
  }catch{el('weekly').textContent='Impossible de confirmer la brochure officielle pour le moment.';}
 }
-refreshTanya();refreshWeekly();
+refreshWeekly();
 </script></html>`;
   return new Response(html, { headers });
 }
