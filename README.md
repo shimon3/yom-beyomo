@@ -93,3 +93,16 @@ Ne changer `publicDisplayAuthorized` à `true` qu'après accord de l'éditeur, v
 ### Utilisation avant autorisation de diffusion
 
 La branche `feature/dvar-malkhout-local-pdf-preview` permet de choisir manuellement un PDF sur l'appareil de l'utilisateur et de le lire localement dans son navigateur avec le lecteur PDF intégré. Le fichier n'est pas téléversé vers Cloudflare ni partagé avec les visiteurs ; le lecteur n'utilise que `URL.createObjectURL` puis libère l'URL avec `URL.revokeObjectURL`. Taille maximale 50 Mo. La lecture dépend du support PDF du navigateur. Aucun stockage R2, synchronisation ou récupération automatique n'est activé. Les brochures officielles ne sont pas hébergées publiquement en l'absence d'autorisation.
+
+## Prototype privé Dvar Malkhout (branche isolée)
+
+**État : en attente d'accord de l'éditeur.** Aucun PDF officiel n'est aspiré, stocké, diffusé ou chargé automatiquement. Le lecteur personnel accepte un fichier local dans le navigateur. Le code prépare un point d'entrée protégé `/dvar-malkhout`; il n'existe plus de copie HTML publique dans cette branche.
+
+Le point d'entrée répond **503 par défaut**. Pour un test privé, installer préalablement une application Cloudflare Access Self-hosted ciblant le chemin `/dvar-malkhout` sur le *hostname de Preview concerné*, limitée à l'adresse de l'administrateur, puis configurer pour **Preview** :
+- `ACCESS_TEAM_DOMAIN` : domaine d'équipe au format `https://<team>.cloudflareaccess.com`
+- `DVAR_PRIVATE_ACCESS_AUD` : audience de **cette** application Access (ne pas réutiliser aveuglément celle des statistiques)
+- `DVAR_PRIVATE_PREVIEW_ENABLED` : `true`, seulement après vérification des deux paramètres précédents.
+
+Le serveur valide la signature et l'audience JWT via `functions/_access.js`. Tant que l'application Access n'est pas en place et que l'URL de Preview n'est pas protégée par sa politique, **ne pas considérer Preview comme privé**. Une branche GitHub d'un dépôt public n'est pas un dépôt privé. Les aperçus Cloudflare Pages sont susceptibles d'avoir des URLs publiques : il faut restreindre les aperçus dans Cloudflare Access / Pages et tester une session non autorisée. Aucun réglage Cloudflare n'a été effectué automatiquement.
+
+**À développer après permission écrite :** connecteur de découverte de métadonnées de la nouvelle brochure sur la source officielle ; URL PDF canonique, comparaison de paracha/semaine, Israël/diaspora, journalisation, contrôles anti-SSRF et erreurs ; affichage intégré uniquement si le droit de diffusion et les en-têtes de framing le permettent. Aucun traitement automatique de brochures sous droits n'est activé.
