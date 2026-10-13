@@ -26,9 +26,11 @@ export async function onRequestGet({ request, env }) {
 <p>Test personnel du lecteur PDF. Le fichier choisi reste uniquement dans ce navigateur et n'est jamais publié.</p>
 <p lang="fr" dir="ltr">La détection automatique des brochures et leur diffusion restent désactivées avant autorisation de l'éditeur.</p>
 <input id="pdf" type="file" accept="application/pdf,.pdf" aria-label="Choisir un PDF"><button id="clear" type="button">Effacer</button>
-<p id="status" role="status">Aucun PDF sélectionné</p><iframe id="viewer" title="PDF local" hidden></iframe></section>
+<p id="status" role="status">Aucun PDF sélectionné</p><hr><h2>Publication hebdomadaire · פרסום שבועי</h2><p id="weekly" role="status">Vérification de la publication en cours…</p><p>Le PDF officiel n'est ni récupéré ni affiché automatiquement sans autorisation.</p><iframe id="viewer" title="PDF local" hidden></iframe></section>
 <script>
 let url=null;
+const weekly=document.getElementById('weekly');
+fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('unavailable');return r.json()}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Publication non confirmée automatiquement.';}).catch(()=>{weekly.textContent='Source indisponible ou identification non confirmée.';});
 const input=document.getElementById('pdf'),frame=document.getElementById('viewer'),status=document.getElementById('status');
 function clear(){frame.removeAttribute('src');frame.hidden=true;if(url){URL.revokeObjectURL(url);url=null;}input.value='';status.textContent='Aucun PDF sélectionné'}
 document.getElementById('clear').addEventListener('click',clear);
