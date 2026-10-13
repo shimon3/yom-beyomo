@@ -39,15 +39,14 @@ export async function onRequestGet({request,env}){
   const englishDate=clean.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}/i);
   // Extract only a publisher-hosted PDF URL associated with the current edition.
   // The reader makes a direct browser request to the publisher; we never proxy or store PDF bytes.
-  const candidates=[...html.matchAll(/<a\\b[^>]*href=["']([^"']+\\.pdf(?:\\?[^"']*)?)["'][^>]*>/gi)];
+  const candidates=[...html.matchAll(/<a\b[^>]*href=["']([^"']+\.pdf(?:\?[^"']*)?)["'][^>]*>/gi)];
   let pdfUrl=null;
   for(const candidate of candidates){
    try{
     const u=new URL(candidate[1].replace(/&amp;/g,"&"),"https://dvarmalchus.com/");
     if(u.protocol==="https:" && u.hostname==="dvarmalchus.com" &&
-       /^\\/Download\\/[0-9a-f-]+\\.pdf$/i.test(u.pathname) && !u.search && !u.hash) {
-      pdfUrl=u.href;
-      break;
+       /^\/Download\/[0-9a-f-]+\.pdf$/i.test(u.pathname) && !u.search && !u.hash) {
+      pdfUrl=u.href;break;
     }
    }catch{}
   }
