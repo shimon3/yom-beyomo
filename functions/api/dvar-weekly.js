@@ -19,8 +19,9 @@ export async function onRequestGet({request,env}){
      signal:controller.signal,redirect:"error",headers:{"accept":"text/html"}
    });
   }finally{clearTimeout(timeout);}
-  if(!source.ok || !(source.headers.get("content-type")||"").includes("text/html"))
-   return reply({status:"source-unavailable"},502);
+  if(!source.ok) return reply({status:"source-http-error",upstreamStatus:source.status},502);
+  if(!(source.headers.get("content-type")||"").toLowerCase().includes("text/html"))
+   return reply({status:"source-not-html"},502);
   const length=Number(source.headers.get("content-length")||0);
   if(length>750000)return reply({status:"source-too-large"},502);
   const html=await source.text();
@@ -40,5 +41,5 @@ export async function onRequestGet({request,env}){
   }:null;
   return reply({status:edition?"metadata-found":"not-confirmed",edition,
    pdfPreviewEnabled:false,pdfUrl:null,checkedAt:new Date().toISOString()});
- }catch{return reply({status:"source-unavailable"},502);}
+ }catch(err){return reply({status:err?.name==="AbortError"?"source-timeout":"source-fetch-failed"},502);}
 }
