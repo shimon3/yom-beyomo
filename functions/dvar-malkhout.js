@@ -24,13 +24,13 @@ export async function onRequestGet({ request, env }) {
 <style>body{font-family:system-ui,Arial,sans-serif;max-width:950px;margin:2rem auto;padding:1rem;background:#f6f7fa;color:#1a2133}section{background:white;padding:1rem;border:1px solid #dde1ea;border-radius:12px}iframe{width:100%;height:70vh;border:1px solid #ddd}p{line-height:1.6}input{max-width:100%}</style>
 <h1>דבר מלכות · Prévisualisation privée</h1><section>
 <p>Test personnel du lecteur PDF. Le fichier choisi reste uniquement dans ce navigateur et n'est jamais publié.</p>
-<p lang="fr" dir="ltr">La détection automatique des brochures et leur diffusion restent désactivées avant autorisation de l'éditeur.</p>
+<p lang="fr" dir="ltr">La vérification des annonces hebdomadaires est en test privé. Le téléchargement et l'affichage des PDF officiels restent désactivés avant autorisation de l'éditeur.</p>
 <input id="pdf" type="file" accept="application/pdf,.pdf" aria-label="Choisir un PDF"><button id="clear" type="button">Effacer</button>
 <p id="status" role="status">Aucun PDF sélectionné</p><hr><h2>Publication hebdomadaire · פרסום שבועי</h2><p id="weekly" role="status">Vérification de la publication en cours…</p><p>Le PDF officiel n'est ni récupéré ni affiché automatiquement sans autorisation.</p><iframe id="viewer" title="PDF local" hidden></iframe></section>
 <script>
 let url=null;
 const weekly=document.getElementById('weekly');
-fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>null);if(!d)return {status:'http-'+r.status};return d;}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Détection non confirmée ('+String(d.status||'unknown')+(d.upstreamStatus?' : '+d.upstreamStatus:'')+').';}).catch(()=>{weekly.textContent='La vérification n’a pas pu aboutir (network-error).';});
+fetch('/api/dvar-weekly',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>null);if(!d)return {status:'http-'+r.status};return d;}).then(d=>{weekly.textContent=d.status==='metadata-found' ? 'Publication détectée : '+d.edition.publishedDateRange+(d.edition.label?' · '+d.edition.label:'') : 'Détection non confirmée ('+String(d.status||'unknown')+(d.upstreamStatus?' : '+d.upstreamStatus:'')+(d.errorType?' · '+d.errorType:'')+(d.detail?' · '+d.detail:'')+').';}).catch(()=>{weekly.textContent='La vérification n’a pas pu aboutir (network-error).';});
 const input=document.getElementById('pdf'),frame=document.getElementById('viewer'),status=document.getElementById('status');
 function clear(){frame.removeAttribute('src');frame.hidden=true;if(url){URL.revokeObjectURL(url);url=null;}input.value='';status.textContent='Aucun PDF sélectionné'}
 document.getElementById('clear').addEventListener('click',clear);
