@@ -26,6 +26,16 @@ export async function onRequestGet({request,env}) {
      env.DB.prepare("SELECT COALESCE(NULLIF(city,''),'unknown') AS name, COUNT(*) AS visits FROM visits GROUP BY name ORDER BY visits DESC LIMIT 30").all(),
      env.DB.prepare("SELECT created,rating,message,contact,lang,page FROM feedback ORDER BY created DESC LIMIT 100").all()
    ]);
-   return respond({totals,daily:daily.results||[],languages:langs.results||[],cities:cities.results||[],feedback:feedback.results||[],schema});
+   let analytics={ready:false,sections:[],errors:[],devices:[]};
+   const check=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_events'").first();
+   if(check){
+     const [sections,errors,devices]=await Promise.all([
+       env.DB.prepare("SELECT label, SUM(count) AS visits FROM analytics_events WHERE category='section' AND day>=date('now','-29 days') GROUP BY label ORDER BY visits DESC LIMIT 20").all(),
+       env.DB.prepare("SELECT label, SUM(count) AS failures FROM analytics_events WHERE category='load_error' AND day>=date('now','-29 days') GROUP BY label ORDER BY failures DESC LIMIT 20").all(),
+       env.DB.prepare("SELECT device, SUM(count) AS visits FROM analytics_events WHERE category='device' AND day>=date('now','-29 days') GROUP BY device ORDER BY visits DESC").all()
+     ]);
+     analytics={ready:true,sections:sections.results||[],errors:errors.results||[],devices:devices.results||[]};
+   }
+   return respond({totals,daily:daily.results||[],languages:langs.results||[],cities:cities.results||[],feedback:feedback.results||[],analytics,schema});
  } catch(e) { console.error("Stats query failure",e); return respond({error:"Database query failed"},503); }
 }
