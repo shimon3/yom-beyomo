@@ -25,21 +25,44 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <iframe class="viewer" title="Lecteur PDF דבר מלכות" referrerpolicy="no-referrer" loading="lazy"></iframe>
 </div>
 <p id="status" role="status">PDF לא זמין עדיין · PDF non disponible pour le moment.</p>
+<p class="small">מקורות רשמיים · Sources : <a href="https://dvarmalchus.org/" target="_blank" rel="noopener noreferrer">dvarmalchus.org</a> · <a href="https://dvarmalchus.com/" target="_blank" rel="noopener noreferrer">dvarmalchus.com</a></p>
 </section>
 </main>
 <script>
-// Activate only after verifying the publisher's permission and the official weekly PDF URL.
-// No PDF copies, proxies, scraping, or third-party PDF viewer are used.
-const APPROVED_OFFICIAL_PDF_URL = "";
-if (APPROVED_OFFICIAL_PDF_URL) {
+/*
+ * Activation is conditional on written permission from the publisher.
+ * No background download, scraping, storage or guessed URL is performed.
+ * An administrator may add approved entries in dvar-malkhout-manifest.json.
+ */
+(async () => {
+ const status=document.querySelector("#status");
  try {
-  const url = new URL(APPROVED_OFFICIAL_PDF_URL);
-  if(url.protocol==="https:" && ["dvarmalchus.org","dvarmalchus.com"].includes(url.hostname) &&
-      url.pathname.toLowerCase().endsWith(".pdf")) {
-   document.querySelector("#reader iframe").src=url.href+"#toolbar=1";
-   document.querySelector("#reader").hidden=false;
-   document.querySelector("#status").textContent="אם המסמך אינו מוצג, ייתכן שהאתר המקורי חוסם הצגה בתוך אתר אחר.";
-  }
- } catch {}
-}
+  const response=await fetch("/dvar-malkhout-manifest.json",{cache:"no-store"});
+  if(!response.ok)throw Error("manifest-unavailable");
+  const manifest=await response.json();
+  if(manifest.publicDisplayAuthorized!==true){ return; }
+  const today=new Date();
+  const selectedDate=new URLSearchParams(location.search).get("d");
+  const date=/^\d{4}-\d{2}-\d{2}$/.test(selectedDate||"") &&
+    !Number.isNaN(Date.parse(selectedDate)) ? selectedDate : [
+     today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")
+    ].join("-");
+  const editions=Array.isArray(manifest.editions)?manifest.editions:[];
+  const active=editions.find(e=>e && e.approved===true &&
+     typeof e.start==="string" && typeof e.end==="string" &&
+     /^\d{4}-\d{2}-\d{2}$/.test(e.start) &&
+     /^\d{4}-\d{2}-\d{2}$/.test(e.end) &&
+     e.start<=date && date<=e.end &&
+     (e.region==="all" || (e.region==="israel" && manifest.defaultRegion==="israel") ||
+       (e.region==="diaspora" && manifest.defaultRegion==="diaspora")));
+  if(!active)return;
+  const url=new URL(active.pdfUrl);
+  if(url.protocol!=="https:" || !["dvarmalchus.org","dvarmalchus.com"].includes(url.hostname) ||
+    !url.pathname.toLowerCase().endsWith(".pdf") || url.username || url.password ||
+    url.search || url.hash)return;
+  document.querySelector("#reader iframe").src=url.href+"#toolbar=1";
+  document.querySelector("#reader").hidden=false;
+  status.textContent="חוברת השבוע · Brochure hebdomadaire : "+String(active.title||date);
+ } catch { status.textContent="PDF לא זמין עדיין · PDF non disponible pour le moment."; }
+})();
 </script></body></html>
