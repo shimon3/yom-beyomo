@@ -1,5 +1,5 @@
 const reply=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
-const sections=new Set(["chumash","tehillim","tanya","rambam","rambam3","rambam1","seferhamitzvot","mishnah","dafyomi","hayomyom"]);
+const sections=new Set(["chumash","tehillim","tanya","rambam","rambam3","rambam1","seferhamitzvot","mishna","daf"]);
 const safeLabel=v=>typeof v==="string"&&/^[a-z][a-z0-9_-]{0,31}$/.test(v);
 const israelDay=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 export async function onRequestPost({request,env}){
