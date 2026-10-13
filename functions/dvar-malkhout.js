@@ -20,7 +20,7 @@ export async function onRequestGet({ request, env }) {
     "referrer-policy": "no-referrer",
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src blob: https://dvarmalchus.com; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
   };
-  const html = \`<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yom Beyomo · לימוד יומי</title>
+  const html = `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yom Beyomo · לימוד יומי</title>
 <style>
 body{margin:0;background:#f6f7fa;color:#1a2133;font-family:system-ui,Arial,sans-serif}main{max-width:1150px;margin:2rem auto;padding:0 1rem}h1{font-size:2rem}.layout{display:grid;grid-template-columns:minmax(0,1fr) 235px;gap:1.2rem}.panel,aside{background:#fff;border:1px solid #dde1ea;border-radius:14px;padding:1.25rem}aside{align-self:start;position:sticky;top:1rem;direction:rtl}.button,button{display:inline-block;padding:.75rem 1rem;border-radius:8px;border:1px solid #89652a;background:#fff;color:#523900;font:inherit;cursor:pointer;text-decoration:none}.button[hidden]{display:none}button{width:100%;margin-top:.65rem}button:disabled{opacity:.5;cursor:default}.muted{color:#606b7d}#tanyaRef{font-weight:600}a{overflow-wrap:anywhere}@media(max-width:720px){.layout{grid-template-columns:1fr}aside{position:static}}
 </style>
@@ -80,6 +80,6 @@ async function refreshWeekly(){
  }catch{el('weekly').textContent='Impossible de confirmer la brochure officielle pour le moment.';}
 }
 refreshTanya();refreshWeekly();
-</script></html>\`;
+</script></html>`;
   return new Response(html, { headers });
 }
