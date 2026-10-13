@@ -677,8 +677,10 @@ async function fill(el, sec, iso, my){
     if(my!==state.token) return;
     const sub = el.querySelector(".sub"); sub.textContent = data.sub; sub.dir = "auto";
     el.querySelector(".text").innerHTML = textHTML(sec, data);
+    analyticsEvent("section",sec.id);
   }catch(e){
     if(my!==state.token) return;
+    analyticsEvent("load_error",sec.id);
     el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
   }
 }
@@ -822,8 +824,17 @@ function deviceId(){
   if(!id){ id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,10)); store.set("uid", id); }
   return id;
 }
+const analyticsDevice=()=>innerWidth<650?"mobile":innerWidth<1024?"tablet":"desktop";
+function analyticsEvent(category,label){
+ if(!onSite||navigator.doNotTrack==="1"||navigator.globalPrivacyControl===true)return;
+ const day=isoOf(new Date()),key="evt:"+day+":"+category+":"+label;
+ try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,"1");}catch{}
+ fetch("/api/analytics-event",{method:"POST",headers:{"content-type":"application/json"},keepalive:true,
+ body:JSON.stringify({category,label,device:analyticsDevice()})}).catch(()=>{});
+}
 function ping(){
-  if(!onSite || navigator.doNotTrack==="1") return;
+  if(!onSite || navigator.doNotTrack==="1" || navigator.globalPrivacyControl===true) return;
+  analyticsEvent("device","visit");
   const day = isoOf(new Date());
   if(store.get("ping")===day) return;
   fetch("/api/ping", {method:"POST", headers:{"content-type":"application/json"}, keepalive:true,
