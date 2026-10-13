@@ -1,5 +1,5 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v3";
+const VERSION = "yb-v4";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DATA_CACHE = "yb-data-v1";
 
