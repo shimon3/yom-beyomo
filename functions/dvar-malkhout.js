@@ -75,7 +75,7 @@ async function refreshWeekly(){
  el('weekly').textContent='Édition détectée : '+(data.edition?.label||'date non identifiée')+(data.edition?.releaseDate?' · '+data.edition.releaseDate:'');
  if(!data.pdfUrl)return;
  const u=new URL(data.pdfUrl);
- if(u.protocol!=='https:'||u.hostname!=='dvarmalchus.com'||!/^\/Download\/[0-9a-f-]+\.pdf$/i.test(u.pathname)||u.search||u.hash)return;
+ if(u.protocol!=='https:'||u.hostname!=='dvarmalchus.com'||!(u.pathname.startsWith('/Download/')&&u.pathname.toLowerCase().endsWith('.pdf'))||u.search||u.hash)return;
  el('officialLink').href=u.href;el('officialLink').hidden=false;
  }catch{el('weekly').textContent='Impossible de confirmer la brochure officielle pour le moment.';}
 }
