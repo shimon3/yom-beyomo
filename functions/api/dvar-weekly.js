@@ -44,5 +44,10 @@ export async function onRequestGet({request,env}){
   }:null;
   return reply({status:edition?"metadata-found":"not-confirmed",edition,
    pdfPreviewEnabled:false,pdfUrl:null,checkedAt:new Date().toISOString()});
- }catch(err){return reply({status:err?.name==="AbortError"?"source-timeout":"source-fetch-failed"},502);}
+ }catch(err){
+  const name = String(err?.name || "UnknownError").slice(0,48);
+  const message = String(err?.message || "").slice(0,180);
+  // Diagnostic only for authenticated Preview visitors. Do not leak request secrets.
+  return reply({status:name==="AbortError"?"source-timeout":"source-fetch-failed",errorType:name,detail:message},502);
+ }
 }
