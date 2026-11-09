@@ -1,7 +1,14 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v6";
+const VERSION = "yb-v7";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
-const DATA_CACHE = "yb-data-v1";
+const DATA_CACHE = "yb-data-v2";
+const MAX_DATA_ENTRIES = 180;
+async function trimDataCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length > MAX_DATA_ENTRIES) {
+    await Promise.all(keys.slice(0, keys.length - MAX_DATA_ENTRIES).map(key => cache.delete(key)));
+  }
+}
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -30,7 +37,7 @@ self.addEventListener("fetch", e => {
   if (url.hostname === "www.sefaria.org" || url.hostname === "www.hebcal.com") {
     e.respondWith(
       fetch(req).then(res => {
-        if (res.ok) { const copy = res.clone(); caches.open(DATA_CACHE).then(c => c.put(req, copy)); }
+        if (res.ok) { const copy = res.clone(); e.waitUntil(caches.open(DATA_CACHE).then(async c => { await c.delete(req); await c.put(req, copy); await trimDataCache(c); }).catch(() => {})); }
         return res;
       }).catch(() => caches.match(req))
     );
