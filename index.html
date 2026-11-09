@@ -537,7 +537,7 @@ const HOLIDAY = /Pesach|Sukkot|Shavuot|Rosh Hashan|Yom Kippur|Atzeret|Simchat|Ch
 async function hayomYomDaily(iso){
   const key="c:hy:"+iso, saved=store.get(key);
   if(saved) return saved;
-  const res=await fetch("https://api.chassidushub.org/v1/daily?date="+encodeURIComponent(iso));
+  const res=await fetch("/api/hayomyom?date="+encodeURIComponent(iso));
   if(!res.ok) throw new Error("Hayom Yom API HTTP "+res.status);
   const json=await res.json(), readings=[];
   for(const item of (Array.isArray(json.hayomYom)?json.hayomYom:[])){
