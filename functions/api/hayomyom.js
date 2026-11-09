@@ -1,6 +1,6 @@
 export async function onRequestGet({request}) {
   const date=new URL(request.url).searchParams.get("date");
-  if(!date||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+"T00:00:00Z")))
+  if(!date||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)||!Number.isFinite(Date.parse(date+"T00:00:00Z")))
     return Response.json({error:"invalid-date"},{status:400});
   try {
     const upstream=await fetch("https://api.chassidushub.org/v1/daily?date="+encodeURIComponent(date),{
