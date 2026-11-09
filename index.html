@@ -539,17 +539,8 @@ async function hayomYomDaily(iso){
   if(saved) return saved;
   const res=await fetch("/api/hayomyom?date="+encodeURIComponent(iso));
   if(!res.ok) throw new Error("Hayom Yom API HTTP "+res.status);
-  const json=await res.json(), readings=[];
-  for(const item of (Array.isArray(json.hayomYom)?json.hayomYom:[])){
-    const source=item.bodySource||{}, versions=item.data?.body?.versions||[];
-    if(!["credit","open"].includes(source.rights)) continue;
-    const v=versions.find(x=>x.language==="he"||x.id==="he");
-    if(!v||!Array.isArray(v.segments)) continue;
-    const paragraphs=v.segments.filter(x=>!x.kind||x.kind==="paragraph").map(x=>(Array.isArray(x.text)?x.text:[]).map(y=>typeof y==="string"?y:(y.text||"")).join("")).filter(Boolean);
-    if(!paragraphs.length) continue;
-    const url=source.url||v.url||"";
-    readings.push({label:item.label?.he||"",paragraphs,credit:source.credit||v.credit||"ChassidusHub",licence:source.licence||v.licence||"",url:/^https:\/\//.test(url)?url:"",machine:v.segments.some(x=>String(x.origin?.by||"").startsWith("ocr:"))});
-  }
+  const json=await res.json();
+  const readings=Array.isArray(json.readings)?json.readings:[];
   if(!readings.length) throw new Error(settings.lang==="fr"?"Hayom Yom indisponible pour cette date.":"היום יום אינו זמין לתאריך הזה.");
   const result={sub:readings.map(x=>x.label).filter(Boolean).join(" · "),readings,groups:[],src:[]};
   store.set(key,result);return result;
