@@ -1,5 +1,5 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v8";
+const VERSION = "yb-v9";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DATA_CACHE = "yb-data-v2";
 const MAX_DATA_ENTRIES = 180;
@@ -40,7 +40,7 @@ self.addEventListener("fetch", e => {
   if (url.hostname === "www.sefaria.org" || url.hostname === "www.hebcal.com") {
     e.respondWith(
       fetch(req).then(res => {
-        if (res.ok) { const copy = res.clone(); e.waitUntil(caches.open(DATA_CACHE).then(async c => { await c.delete(req); await c.put(req, copy); await trimDataCache(c); }).catch(() => {})); }
+        if (res.ok && !/no-store|private/i.test(res.headers.get("cache-control") || "")) { const copy = res.clone(); e.waitUntil(caches.open(DATA_CACHE).then(async c => { await c.delete(req); await c.put(req, copy); await trimDataCache(c); }).catch(() => {})); }
         return res;
       }).catch(() => caches.match(req))
     );
@@ -48,14 +48,14 @@ self.addEventListener("fetch", e => {
   }
 
   // Fonts and same-origin files: cache first, refresh in background
-  if (url.origin === location.origin || url.hostname.endsWith("gstatic.com") || url.hostname === "fonts.googleapis.com") {
+  if (url.origin === location.origin || url.hostname === "fonts.gstatic.com" || url.hostname === "fonts.googleapis.com") {
     e.respondWith(
       caches.match(req).then(hit => {
         const net = fetch(req).then(res => {
           if ((res.ok || res.type === "opaque") && !/no-store|private/i.test(res.headers.get("cache-control") || "")) { const copy = res.clone(); e.waitUntil(caches.open(VERSION).then(c => c.put(req, copy)).catch(() => {})); }
           return res;
         }).catch(() => hit);
-        return hit || net;
+        return (url.origin === location.origin && (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/sw.js")) ? net : (hit || net);
       })
     );
   }
