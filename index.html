@@ -729,7 +729,7 @@ function toolsBar(list){
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
     return data.readings.map(r=>{
-      const body=r.paragraphs.map(p=>'<p class="v">'+esc(p)+'</p>').join("");
+      const body=r.external ? '<div class="msg" dir="auto">'+(settings.lang==="fr"?"La lecture complète est disponible sur le site de la source.":"הטקסט המלא זמין באתר המקור.")+'</div>' : r.paragraphs.map(p=>'<p class="v">'+esc(p)+'</p>').join("");
       const credit=r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(r.credit)+'</a>':esc(r.credit);
       const warning=r.machine?'<div class="hint" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique ; vérifier avec la source.":"טקסט מזיהוי אוטומטי; יש לבדוק מול המקור.")+'</div>':"";
       return '<div dir="rtl" lang="he">'+body+'</div><div class="src" dir="auto">'+esc(t("source"))+': '+credit+' · '+esc(r.licence)+'</div>'+warning;
