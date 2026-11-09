@@ -456,7 +456,7 @@ async function hebDate(iso){
 }
 async function calendar(iso){
   const dia = city().il ? 0 : 1;
-  const k = `c:cal2:${iso}:${dia}`; const c = store.get(k); if(c) return c;
+  const k = `c:cal3:${iso}:${dia}:${city().tz}`; const c = store.get(k); if(c) return c;
   const [y,m,d] = parts(iso);
   const j = await net(`${SEF}/calendars?year=${y}&month=${m}&day=${d}&diaspora=${dia}&timezone=${encodeURIComponent(city().tz)}`);
   const items = (j.calendar_items||[]).map(i=>({order:i.order, ref:i.ref, he:i.displayValue?.he||"", en:i.displayValue?.en||"", aliyot:i.extraDetails?.aliyot||null}));
