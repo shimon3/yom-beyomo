@@ -1,5 +1,5 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v7";
+const VERSION = "yb-v8";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DATA_CACHE = "yb-data-v2";
 const MAX_DATA_ENTRIES = 180;
@@ -27,6 +27,9 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
+  // Never cache private routes, APIs, or authenticated responses.
+  if (url.origin === location.origin && (url.pathname.startsWith("/api/") || url.pathname === "/stats" || url.pathname.startsWith("/stats/") || url.pathname.startsWith("/dvar-malkhout"))) return;
+
   // Page navigations: network first, fall back to the cached shell
   if (req.mode === "navigate") {
     e.respondWith(fetch(req).catch(() => caches.match("/index.html")));
@@ -49,7 +52,7 @@ self.addEventListener("fetch", e => {
     e.respondWith(
       caches.match(req).then(hit => {
         const net = fetch(req).then(res => {
-          if (res.ok || res.type === "opaque") { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+          if ((res.ok || res.type === "opaque") && !/no-store|private/i.test(res.headers.get("cache-control") || "")) { const copy = res.clone(); e.waitUntil(caches.open(VERSION).then(c => c.put(req, copy)).catch(() => {})); }
           return res;
         }).catch(() => hit);
         return hit || net;
