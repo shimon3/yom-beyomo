@@ -545,7 +545,7 @@ async function hayomYomDaily(iso){
     if(!["credit","open"].includes(source.rights)) continue;
     const v=versions.find(x=>x.language==="he"||x.id==="he");
     if(!v||!Array.isArray(v.segments)) continue;
-    const paragraphs=v.segments.filter(x=>x.kind==="paragraph").map(x=>(Array.isArray(x.text)?x.text:[]).map(y=>y.text||"").join("")).filter(Boolean);
+    const paragraphs=v.segments.filter(x=>!x.kind||x.kind==="paragraph").map(x=>(Array.isArray(x.text)?x.text:[]).map(y=>typeof y==="string"?y:(y.text||"")).join("")).filter(Boolean);
     if(!paragraphs.length) continue;
     const url=source.url||v.url||"";
     readings.push({label:item.label?.he||"",paragraphs,credit:source.credit||v.credit||"ChassidusHub",licence:source.licence||v.licence||"",url:/^https:\/\//.test(url)?url:"",machine:v.segments.some(x=>String(x.origin?.by||"").startsWith("ocr:"))});
