@@ -1,6 +1,6 @@
 export async function onRequestGet({request}) {
   const date = new URL(request.url).searchParams.get("date");
-  if (!date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !Number.isFinite(Date.parse(date+"T00:00:00Z"))) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date+"T00:00:00Z"))) {
     return Response.json({error:"invalid-date"}, {status:400});
   }
   try {
@@ -13,7 +13,7 @@ export async function onRequestGet({request}) {
       const source=item.bodySource||{}, versions=item.data?.body?.versions||[];
       const version=versions.find(v=>v.language==="he"||v.id==="he");
       const url=source.url||version?.url||"";
-      if (!/^https:\\/\\//.test(url)) continue;
+      if (!/^https:\/\//.test(url)) continue;
       // "free-to-read" permits reading at the source, not necessarily republication.
       // Only pass metadata and links. Do not relay copyrighted paragraphs.
       readings.push({
