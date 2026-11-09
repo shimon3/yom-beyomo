@@ -18,6 +18,7 @@ export async function onRequestGet({request}) {
       const creditAllowed=source.source==="chabadlibrary"&&source.rights==="credit"&&
         /^https:\/\/(?:www\.)?chabadlibrary\.org\//.test(url);
       const paragraphs=[];
+      const diagnostics={source:source.source||null,rights:source.rights||null,creditAllowed,hasVersion:!!version,segments:Array.isArray(version?.segments)?version.segments.length:null,firstSegmentType:typeof version?.segments?.[0]?.text?.[0]};
       if(creditAllowed&&version&&Array.isArray(version.segments)){
         for(const segment of version.segments){
           const lines=Array.isArray(segment.text)?segment.text:[segment.text];
@@ -29,7 +30,7 @@ export async function onRequestGet({request}) {
         label:item.label?.he||"",paragraphs,
         credit:source.credit||version?.credit||"ספריית ליובאוויטש",
         licence:source.licence||version?.licence||"unspecified",
-        url,external:!paragraphs.length,
+        url,external:!paragraphs.length,...(new URL(request.url).searchParams.has("diagnose")?{diagnostics}:{}),
         machine:version?.machine===true||item.data?.body?.machine===true||version?.segments?.some(segment=>String(segment.origin?.by||"").startsWith("ocr:"))===true,
         checked:version?.checked===true
       });
