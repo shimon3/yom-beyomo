@@ -1,5 +1,5 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v10";
+const VERSION = "yb-v11";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DATA_CACHE = "yb-data-v2";
 const MAX_DATA_ENTRIES = 180;
@@ -30,9 +30,10 @@ self.addEventListener("fetch", e => {
   // Never cache private routes, APIs, or authenticated responses.
   if (url.origin === location.origin && (url.pathname.startsWith("/api/") || url.pathname === "/stats" || url.pathname.startsWith("/stats/") || url.pathname.startsWith("/dvar-malkhout"))) return;
 
-  // Page navigations: network first, fall back to the cached shell
+  // Only the public homepage can fall back to the offline app shell.
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("/index.html")));
+    if (url.origin !== location.origin || !["/", "/index.html"].includes(url.pathname)) return;
+    e.respondWith(fetch(req).catch(async () => (await caches.match("/index.html")) || Response.error()));
     return;
   }
 
