@@ -401,6 +401,8 @@ const parts = iso => iso.split("-").map(Number);
 const addDays = (iso,n) => { const [y,m,d] = parts(iso); return isoOf(new Date(y,m-1,d+n)); };
 const weekday = iso => { const [y,m,d] = parts(iso); return new Date(y,m-1,d).getDay(); };
 const city = () => CITIES.find(c=>c.id===settings.city) || CITIES[0];
+// Use the selected city, not the device time zone, to determine the civil day.
+const cityISO = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {timeZone:city().tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const secTitle = s => s.title[settings.lang] || s.title.he;
 const secShort = s => s[settings.lang] || s.he;
@@ -471,8 +473,10 @@ async function sunsetPassed(iso){
   const c = city();
   try{
     const j = await net(`${HEB}/zmanim?cfg=json&latitude=${c.lat}&longitude=${c.lon}&tzid=${encodeURIComponent(c.tz)}&date=${iso}`);
-    const s = j.times && j.times.sunset; return s ? Date.now() > Date.parse(s) : false;
-  }catch{ return false; }
+    const s = j.times && j.times.sunset;
+    if(!s || !Number.isFinite(Date.parse(s))) throw new Error("Missing sunset time");
+    return Date.now() > Date.parse(s);
+  }catch{ down.add("hebcal"); setStatus(); return false; }
 }
 
 /* ---------- text shaping ---------- */
@@ -555,9 +559,10 @@ const LOADERS = {
     const a = (ctx.cal.find(i=>i.order===15)||{}).ref;
     if(!a) throw new Error(t("errNoTanya"));
     const b = (ctx.calNext.find(i=>i.order===15)||{}).ref;
+    if(!b) throw new Error(t("errNoTanya"));
     const P = r => { const m = String(r||"").match(/^(Tanya, Part [IVX]+; .+?) (\d+)(?::(\d+))?$/); return m ? {book:m[1], ch:+m[2], seg:m[3] ? +m[3] : 1} : null; };
     const A = P(a), B = P(b);
-    if(!A){ const tx = await fetchText(a); return {sub:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]}; }
+    if(!A || !B){ const tx = await fetchText(a); return {sub:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]}; }
     const rows = [], srcs = []; let heBook = "";
     const take = async (book, ch, from, to) => { const tx = await fetchText(`${book} ${ch}`); srcs.push(tx); if(!heBook) heBook = tx.heRef.replace(/\s+\S+$/,"");
       rowsOf(tx).forEach(r=>{ if(r.v>=from && r.v<to) rows.push(r); }); };
@@ -565,7 +570,7 @@ const LOADERS = {
     else {
       await take(A.book, A.ch, A.seg, Infinity);
       if(B && B.book===A.book){ for(let c=A.ch+1; c<B.ch; c++) await take(A.book, c, 1, Infinity); if(B.seg>1) await take(B.book, B.ch, 1, B.seg); }
-      else if(B && B.seg>1) await take(B.book, B.ch, 1, B.seg);
+      else if(B && B.seg>1 && B.book===A.book) await take(B.book, B.ch, 1, B.seg);
     }
     if(!rows.length) throw new Error(t("errNoTanya"));
     const f = rows[0], l = rows[rows.length-1], name = (heBook || "תניא").replace(/^תניא,\s*/,"");
@@ -753,7 +758,7 @@ async function setDate(iso, auto=false){
   catch{ if(state.iso===iso) $("#hdate").textContent = ""; }
 }
 async function goToday(){
-  let iso = isoOf(new Date()), auto = false;
+  let iso = cityISO(), auto = false;
   if(settings.afterSunset && await sunsetPassed(iso)){ iso = addDays(iso,1); auto = true; }
   setDate(iso, auto);
 }
