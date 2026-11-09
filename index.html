@@ -402,7 +402,10 @@ const addDays = (iso,n) => { const [y,m,d] = parts(iso); return isoOf(new Date(y
 const weekday = iso => { const [y,m,d] = parts(iso); return new Date(y,m-1,d).getDay(); };
 const city = () => CITIES.find(c=>c.id===settings.city) || CITIES[0];
 // Use the selected city, not the device time zone, to determine the civil day.
-const cityISO = (date = new Date()) => new Intl.DateTimeFormat("en-CA", {timeZone:city().tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
+const cityISO = (date = new Date()) => {
+  const fields = Object.fromEntries(new Intl.DateTimeFormat("en-US", {timeZone:city().tz,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date).filter(p=>p.type!=="literal").map(p=>[p.type,p.value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
+};
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const secTitle = s => s.title[settings.lang] || s.title.he;
 const secShort = s => s[settings.lang] || s.he;
@@ -570,7 +573,6 @@ const LOADERS = {
     else {
       await take(A.book, A.ch, A.seg, Infinity);
       if(B && B.book===A.book){ for(let c=A.ch+1; c<B.ch; c++) await take(A.book, c, 1, Infinity); if(B.seg>1) await take(B.book, B.ch, 1, B.seg); }
-      else if(B && B.seg>1 && B.book===A.book) await take(B.book, B.ch, 1, B.seg);
     }
     if(!rows.length) throw new Error(t("errNoTanya"));
     const f = rows[0], l = rows[rows.length-1], name = (heBook || "תניא").replace(/^תניא,\s*/,"");
