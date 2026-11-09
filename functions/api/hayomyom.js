@@ -21,7 +21,8 @@ export async function onRequestGet({request}) {
       if(creditAllowed&&version&&Array.isArray(version.segments)){
         for(const segment of version.segments){
           const lines=Array.isArray(segment.text)?segment.text:[segment.text];
-          for(const line of lines)if(typeof line==="string"&&line.trim())paragraphs.push(line.trim());
+          const paragraph=lines.map(part=>typeof part==="string"?part:(part&&typeof part.text==="string"?part.text:"")).join("").trim();
+          if(paragraph)paragraphs.push(paragraph);
         }
       }
       readings.push({
@@ -29,7 +30,7 @@ export async function onRequestGet({request}) {
         credit:source.credit||version?.credit||"ספריית ליובאוויטש",
         licence:source.licence||version?.licence||"unspecified",
         url,external:!paragraphs.length,
-        machine:version?.machine===true||item.data?.body?.machine===true,
+        machine:version?.machine===true||item.data?.body?.machine===true||version?.segments?.some(segment=>String(segment.origin?.by||"").startsWith("ocr:"))===true,
         checked:version?.checked===true
       });
     }
