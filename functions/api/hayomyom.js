@@ -33,7 +33,7 @@ export async function onRequestGet({request}) {
         machine: version.segments.some(seg => String(seg.origin?.by || "").startsWith("ocr:"))
       });
     }
-    return Response.json({readings, count: readings.length}, {
+    return Response.json({readings, count: readings.length, ...(readings.length ? {} : {diagnostic:{rootKeys:Object.keys(json||{}), hayomYomType:typeof json?.hayomYom, hayomYomIsArray:Array.isArray(json?.hayomYom), itemCount:Array.isArray(json?.hayomYom)?json.hayomYom.length:null, firstItemKeys:Array.isArray(json?.hayomYom)&&json.hayomYom[0]?Object.keys(json.hayomYom[0]):[], firstRights:json?.hayomYom?.[0]?.bodySource?.rights||null, versionCount:json?.hayomYom?.[0]?.data?.body?.versions?.length||0}})}, {
       headers:{"Cache-Control":"public, max-age=300"}
     });
   } catch {
