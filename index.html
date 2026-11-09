@@ -535,16 +535,20 @@ const HOLIDAY = /Pesach|Sukkot|Shavuot|Rosh Hashan|Yom Kippur|Atzeret|Simchat|Ch
 
 /* Hayom Yom from ChassidusHub. Honor source rights and show attribution. */
 async function hayomYomDaily(iso){
-  const key="c:hy:"+iso, saved=store.get(key);
-  if(saved) return saved;
+  const key="c:hy2:"+iso, saved=store.get(key);
+  if(saved && (saved.readings||[]).some(r=>(r.paragraphs||[]).length)) return saved;
   const res=await fetch("/api/hayomyom?date="+encodeURIComponent(iso));
   if(!res.ok) throw new Error("Hayom Yom API HTTP "+res.status);
   const json=await res.json();
   const readings=Array.isArray(json.readings)?json.readings:[];
   if(!readings.length) throw new Error(settings.lang==="fr"?"Hayom Yom indisponible pour cette date.":"היום יום אינו זמין לתאריך הזה.");
   const result={sub:readings.map(x=>x.label).filter(Boolean).join(" · "),readings,groups:[],src:[]};
-  store.set(key,result);return result;
+  /* Only keep full texts offline: an empty answer must be retried, never replayed. */
+  if(readings.some(r=>(r.paragraphs||[]).length)) store.set(key,result);
+  return result;
 }
+/* Drop Hayom Yom answers cached by earlier versions (some held paragraphs: []). */
+try{ Object.keys(localStorage).filter(k=>k.startsWith("yb:c:hy:")).forEach(k=>localStorage.removeItem(k)); }catch{}
 
 const LOADERS = {
   async hayomyom(ctx){return hayomYomDaily(ctx.iso);},
