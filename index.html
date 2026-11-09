@@ -573,6 +573,7 @@ const LOADERS = {
     else {
       await take(A.book, A.ch, A.seg, Infinity);
       if(B && B.book===A.book){ for(let c=A.ch+1; c<B.ch; c++) await take(A.book, c, 1, Infinity); if(B.seg>1) await take(B.book, B.ch, 1, B.seg); }
+      else if(B && B.ch===1 && B.seg>1) await take(B.book, B.ch, 1, B.seg);
     }
     if(!rows.length) throw new Error(t("errNoTanya"));
     const f = rows[0], l = rows[rows.length-1], name = (heBook || "תניא").replace(/^תניא,\s*/,"");
@@ -789,7 +790,7 @@ $("#waInvite").onclick = ()=>openWhatsApp(t("waInviteText")+"\n"+SITE);
 /* ---------- offline: save the next days ---------- */
 async function prefetch(days){
   const msg = $("#prefetchMsg"), btn = $("#prefetchBtn"); btn.disabled = true;
-  const start = state.iso || isoOf(new Date()); let ok = 0, fail = 0; const total = days * visible().length;
+  const start = state.iso || cityISO(); let ok = 0, fail = 0; const total = days * visible().length;
   for(let i=0;i<days;i++){
     const iso = addDays(start,i);
     for(const s of visible()){
