@@ -729,9 +729,8 @@ function toolsBar(list){
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
     return data.readings.map(r=>{
-      const source=r.url ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 0">'+(settings.lang==="fr"?"Ouvrir la lecture officielle ↗":"פתיחת הקריאה באתר המקור ↗")+'</a>' : "";
-      const embed='<iframe src="https://chassidushub.org/embed/rh-q5hmyemj" title="Hayom Yom — ChassidusHub" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="display:block;width:100%;min-height:640px;border:0;margin:8px 0 12px;border-radius:8px" ></iframe>';
-      const body=r.external ? embed+source : (r.paragraphs||[]).map(p=>'<p class="v">'+esc(p)+'</p>').join("");
+      const source=r.url ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 18px;border-radius:10px;border:1px solid currentColor;margin:12px 0;text-decoration:none;font-weight:700">'+(settings.lang==="fr"?"Lire le Hayom Yom du jour ↗":"קריאת היום יום של היום ↗")+'</a>' : "";
+      const body=(r.paragraphs||[]).length ? r.paragraphs.map(p=>'<p class="v">'+esc(p)+'</p>').join("") : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible sur le site source.":"הטקסט המלא זמין באתר המקור.")+'</div>'+source;
       return '<div dir="rtl" lang="he">'+body+'</div><div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+'</div>';
     }).join("");
   }
