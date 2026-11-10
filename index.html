@@ -78,6 +78,7 @@ main{padding-block:16px 40px;padding-inline:16px}
 .cycle-lbl{font-size:.8rem;color:var(--muted);margin-bottom:4px}
 .cycle-bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden}
 .cycle-bar i{display:block;height:100%;background:var(--accent)}
+.today-count{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -306,7 +307,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -345,7 +346,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -1019,7 +1020,7 @@ $("#fbSend").onclick = async ()=>{
 /* ---------- agenda : fichier .ics du jour ----------
    A single all-day event with the day's sections. The file is built and downloaded
    in the browser: no server, no account, nothing sent. */
-const icsEsc = s => String(s).replace(/\\/g,"\\\\").replace(/;/g,"\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+const icsEsc = s => String(s).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
 function icsLine(line){
   const chars = [...line], out = [];
   for(let i = 0; i < chars.length; i += 73) out.push(chars.slice(i, i + 73).join(""));
@@ -1053,8 +1054,19 @@ async function addToCalendar(btn){
   btn.disabled = false; btn.textContent = old;
 }
 
+/* Public count of today's visitors, shown only above a threshold (see functions/api/today.js). */
+async function todayCount(){
+  let el = $("#todayCount");
+  if(!el){ el = document.createElement("div"); el.id = "todayCount"; el.className = "today-count"; el.hidden = true; $(".datebar").after(el); }
+  try{
+    const r = await fetch("/api/today", {cache:"no-store"}); if(!r.ok) return;
+    const {count} = await r.json();
+    el.textContent = count ? t("todayCount")(count) : ""; el.hidden = !count;
+  }catch{ el.hidden = true; }
+}
+
 /* ---------- start ---------- */
-applyTheme(); applyLang(); ping();
+applyTheme(); applyLang(); ping(); todayCount();
 const linked = new URLSearchParams(location.search).get("d");
 if(linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && !isNaN(Date.parse(linked))) setDate(linked);
 else goToday();
