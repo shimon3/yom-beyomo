@@ -73,6 +73,10 @@ button{cursor:pointer}
 
 main{padding-block:16px 40px;padding-inline:16px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.cycle{padding:6px 2px 2px}
+.cycle-lbl{font-size:.8rem;color:var(--muted);margin-bottom:4px}
+.cycle-bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden}
+.cycle-bar i{display:block;height:100%;background:var(--accent)}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -301,7 +305,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -340,7 +344,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -705,6 +709,18 @@ function applyLang(){
   $("#badge").textContent = t("badge");
   setStatus();
 }
+/* Where we are in the monthly Tehilim cycle (30 days, by Hebrew day of the month).
+   Shown only when the calendar data is available; no guess when it is not. */
+async function cycleBar(){
+  const iso = state.iso; if(!iso) return;
+  let bar = $("#cycle");
+  if(!bar){ bar = document.createElement("div"); bar.id = "cycle"; bar.className = "cycle"; $("#chips").after(bar); }
+  try{
+    const ctx = await getCtx(iso); if(state.iso !== iso) return;
+    const n = Math.min(ctx.h.hd, 30);
+    bar.innerHTML = `<div class="cycle-lbl">${t("cycleTeh")(n)}</div><div class="cycle-bar" role="img" aria-label="${n}/30"><i style="width:${(n/30)*100}%"></i></div>`;
+  }catch{ bar.innerHTML = ""; }
+}
 function renderChips(){
   const done = getDone(state.iso), vis = visible();
   $("#chips").innerHTML = vis.map(s=>`<button class="chip${done[s.id] ? " done" : ""}" role="tab" id="chip-${s.id}" aria-selected="${!settings.all && s.id===state.active}" data-id="${s.id}"><span class="tick">✓</span>${esc(secShort(s))}</button>`).join("");
@@ -778,6 +794,7 @@ function render(){
   $("#content").innerHTML = toolsBar(list) + list.map(shell).join(`<hr class="sep">`);
   list.forEach(sec=>fill($("#s-"+sec.id), sec, state.iso, my));
   renderChips();
+  cycleBar();
 }
 
 async function setDate(iso, auto=false){
