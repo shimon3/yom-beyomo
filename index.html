@@ -306,7 +306,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -345,7 +345,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -760,7 +760,7 @@ function toolsBar(list){
     <button class="tool" id="tSmaller" aria-label="${t("smaller")}">A−</button>
     <button class="tool" id="tBigger" aria-label="${t("bigger")}">A+</button>
     <button class="tool wa" id="tWa">${WA_ICON}${t("wa")}</button>
-    <button class="tool" id="tShare">${t("share")}</button><span class="streak">${streakLabel()}</span></div>`;
+    <button class="tool" id="tCal">${t("calBtn")}</button><button class="tool" id="tShare">${t("share")}</button><span class="streak">${streakLabel()}</span></div>`;
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
@@ -895,6 +895,7 @@ $("#content").addEventListener("click", e=>{
   if(b.id==="tAll"){ settings.all = !settings.all; saveSettings(); render(); }
   if(b.id==="tRashi"){ settings.rashi = !settings.rashi; saveSettings(); render(); }
   if(b.id==="tNikud"){ settings.nikud = !settings.nikud; saveSettings(); render(); }
+  if(b.id==="tCal"){ addToCalendar(b); }
   if(b.id==="tShare"){ share(b); }
   if(b.id==="tWa"){ share(b, true); }
   if(b.id==="tBigger"||b.id==="tSmaller"){ settings.size = Math.min(2.2, Math.max(1, +(settings.size + (b.id==="tBigger" ? .1 : -.1)).toFixed(2))); saveSettings(); applyTheme(); }
@@ -1014,6 +1015,43 @@ $("#fbSend").onclick = async ()=>{
   }catch{ msg.textContent = t("fbErr"); }
   $("#fbSend").disabled = false;
 };
+
+/* ---------- agenda : fichier .ics du jour ----------
+   A single all-day event with the day's sections. The file is built and downloaded
+   in the browser: no server, no account, nothing sent. */
+const icsEsc = s => String(s).replace(/\\/g,"\\\\").replace(/;/g,"\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+function icsLine(line){
+  const chars = [...line], out = [];
+  for(let i = 0; i < chars.length; i += 73) out.push(chars.slice(i, i + 73).join(""));
+  return out.join("\r\n ");
+}
+async function addToCalendar(btn){
+  const iso = state.iso; if(!iso) return;
+  const old = btn.textContent; btn.disabled = true;
+  const lines = [];
+  for(const s of visible()){
+    try{ const d = await Promise.race([loadSection(s.id, iso), sleep(4000).then(()=>null)]); lines.push(`${secTitle(s)}${d && d.sub ? " — " + d.sub : ""}`); }
+    catch{ lines.push(secTitle(s)); }
+  }
+  const stamp = new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//yom-beyomo//FR", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${iso.replace(/-/g,"")}-${stamp}@yom-beyomo.pages.dev`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${iso.replace(/-/g,"")}`,
+    `DTEND;VALUE=DATE:${addDays(iso,1).replace(/-/g,"")}`,
+    `SUMMARY:${icsEsc(t("icsTitle"))}`,
+    `DESCRIPTION:${icsEsc(lines.join("\n"))}`,
+    `URL:${icsEsc(SITE + "?d=" + iso)}`,
+    "TRANSP:TRANSPARENT", "END:VEVENT", "END:VCALENDAR"
+  ].map(icsLine).join("\r\n") + "\r\n";
+  const url = URL.createObjectURL(new Blob([ics], {type:"text/calendar;charset=utf-8"}));
+  const a = document.createElement("a"); a.href = url; a.download = `yom-beyomo-${iso}.ics`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  btn.disabled = false; btn.textContent = old;
+}
 
 /* ---------- start ---------- */
 applyTheme(); applyLang(); ping();
