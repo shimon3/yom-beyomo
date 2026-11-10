@@ -73,6 +73,7 @@ button{cursor:pointer}
 
 main{padding-block:16px 40px;padding-inline:16px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.today-count{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -301,7 +302,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", todayCount:n=>`יותר מ-${n} אנשים לומדים היום`, rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -340,7 +341,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", todayCount:n=>`Plus de ${n} personnes étudient aujourd’hui`, rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -981,8 +982,19 @@ $("#fbSend").onclick = async ()=>{
   $("#fbSend").disabled = false;
 };
 
+/* Public count of today's visitors, shown only above a threshold (see functions/api/today.js). */
+async function todayCount(){
+  let el = $("#todayCount");
+  if(!el){ el = document.createElement("div"); el.id = "todayCount"; el.className = "today-count"; el.hidden = true; $(".datebar").after(el); }
+  try{
+    const r = await fetch("/api/today", {cache:"no-store"}); if(!r.ok) return;
+    const {count} = await r.json();
+    el.textContent = count ? t("todayCount")(count) : ""; el.hidden = !count;
+  }catch{ el.hidden = true; }
+}
+
 /* ---------- start ---------- */
-applyTheme(); applyLang(); ping();
+applyTheme(); applyLang(); ping(); todayCount();
 const linked = new URLSearchParams(location.search).get("d");
 if(linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && !isNaN(Date.parse(linked))) setDate(linked);
 else goToday();
