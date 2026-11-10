@@ -132,6 +132,7 @@ main{padding-block:16px 40px;padding-inline:16px}
 dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(440px,calc(100% - 32px))}
 dialog::backdrop{background:rgba(10,12,20,.45)}
 .dlg{padding:18px 18px 14px;display:grid;gap:14px}
+dialog.tools-dlg:not([open]){display:none}
 .dlg h3{margin:0;font-size:1.1rem}
 .field{display:grid;gap:4px}
 .field label,.lab{font-weight:600;font-size:.9rem}
@@ -234,7 +235,7 @@ footer a{color:inherit}
   <button type="button" class="x" id="a2hsX" data-ta="close">×</button>
 </div>
 
-<dialog id="toolsDlg" class="dlg" aria-labelledby="toolsTitle">
+<dialog id="toolsDlg" class="dlg tools-dlg" aria-labelledby="toolsTitle">
   <h3 id="toolsTitle" data-t="tools"></h3>
   <div class="tools-grid">
     <button class="tool" id="tAll" data-t="all" aria-pressed="false"></button>
