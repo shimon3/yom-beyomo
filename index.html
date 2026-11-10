@@ -73,6 +73,7 @@ button{cursor:pointer}
 
 main{padding-block:16px 40px;padding-inline:16px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.streak{font-size:.85rem;color:var(--muted);align-self:center;margin-inline-start:4px}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -301,7 +302,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -340,7 +341,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -719,6 +720,22 @@ function shell(sec){
     <button class="done-btn" data-done="${sec.id}" aria-pressed="${done}">${done ? t("doneOn") : t("done")}</button></div>
     <div class="text he${sec.flow ? " flow" : ""}">${skeleton()}</div></section>`;
 }
+/* Streak: consecutive days with at least one section marked done. Stored only in localStorage.
+   Today is not required yet: an empty today keeps yesterday's streak, with a gentle prompt. */
+function hasDone(iso){ return Object.values(getDone(iso)).some(Boolean); }
+function streakCount(iso){
+  let d = iso, n = 0;
+  if(!hasDone(d)) d = addDays(d,-1);
+  while(hasDone(d) && n < 3650){ n++; d = addDays(d,-1); }
+  return n;
+}
+function streakLabel(){
+  const today = state.iso; if(!today) return "";
+  const n = streakCount(today);
+  const msg = n ? t("streakOn")(n) : "";
+  if(hasDone(today)) return msg;
+  return msg ? `${msg} · ${t("streakResume")}` : t("streakStart");
+}
 function toolsBar(list){
   return `<div class="tools">
     <button class="tool" id="tAll" aria-pressed="${settings.all}">${t("all")}</button>
@@ -727,7 +744,7 @@ function toolsBar(list){
     <button class="tool" id="tSmaller" aria-label="${t("smaller")}">A−</button>
     <button class="tool" id="tBigger" aria-label="${t("bigger")}">A+</button>
     <button class="tool wa" id="tWa">${WA_ICON}${t("wa")}</button>
-    <button class="tool" id="tShare">${t("share")}</button></div>`;
+    <button class="tool" id="tShare">${t("share")}</button><span class="streak">${streakLabel()}</span></div>`;
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
@@ -850,7 +867,7 @@ $("#content").addEventListener("click", e=>{
   const b = e.target.closest("button"); if(!b) return;
   if(b.dataset.done){
     const id = b.dataset.done, d = getDone(state.iso); d[id] = !d[id]; store.set("done:"+state.iso, d);
-    b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips();
+    b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips(); const sk = document.querySelector(".streak"); if(sk) sk.textContent = streakLabel();
     const nxt = d[id] && visible().find(s=>!d[s.id]);
     if(nxt){
       if(settings.all){ const el = $("#s-"+nxt.id); if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth"}), 250); }
