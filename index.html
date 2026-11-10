@@ -47,6 +47,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:
 button,select,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.w:focus-visible{outline:2px solid var(--accent);border-radius:3px}
 
 .top{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);
   padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 0}
@@ -82,10 +83,11 @@ main{padding-block:16px 40px;padding-inline:16px}
 .study{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.85rem;padding:8px 0;border-top:1px solid var(--line);margin-top:8px}
 .study-txt{color:var(--ink)}
 .study-actions{display:flex;gap:6px;margin-inline-start:auto}
+.study .tool,.tool.study-btn{min-height:36px;padding:6px 12px}
 .peer{box-shadow:inset 3px 0 0 var(--accent);border-radius:6px}
 .peer-tag{display:inline-block;font-family:var(--f-ui);font-size:.7rem;background:var(--accent);color:var(--paper);border-radius:6px;padding:0 6px;margin-inline-end:6px;vertical-align:middle}
 .peer-w{background:var(--accent-soft);outline:2px solid var(--accent);border-radius:4px}
-.my-w{text-decoration:underline dotted var(--done);text-underline-offset:4px}
+.my-w{text-decoration:underline solid var(--done);text-decoration-thickness:2px;text-underline-offset:4px;border-radius:3px;outline:1px dashed var(--done)}
 .w{cursor:pointer}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
@@ -781,7 +783,7 @@ function wordsHTML(html){
       ch.textContent.split(/(\s+)/).forEach(part => {
         if(!part) return;
         if(/^\s+$/.test(part)){ frag.append(part); return; }
-        const sp = document.createElement("span"); sp.className = "w"; sp.dataset.w = String(i++); sp.textContent = part; frag.append(sp);
+        const sp = document.createElement("span"); sp.className = "w"; sp.tabIndex = 0; sp.setAttribute("role","button"); sp.dataset.w = String(i++); sp.textContent = part; frag.append(sp);
       });
       ch.replaceWith(frag);
     } else if(ch.nodeType === 1) walk(ch);
@@ -1165,7 +1167,7 @@ function studyBar(){
     return `<b>${esc(peerName(p))}</b>` + (vnum ? ` · ${t("studyVerse")} ${esc(vnum)}` : "") + (p.w != null ? ` · ${t("studyWord")} ${p.w + 1}` : "") + esc(where);
   }).join(" · ");
   const label = STUDY.peers.length ? `${t("studyWho")} ${who}` : t("studyWait");
-  const html = `<span class="study-txt">${label}</span>` +
+  const html = `<span class="study-txt" role="status" aria-live="polite">${label}</span>` +
     (STUDY.full ? `<span class="study-txt">${t("studyFull")}</span>` : "") +
     `<span class="study-actions"><button class="tool" data-study="follow" aria-pressed="${STUDY.follow}">${t("studyFollow")}</button>` +
     `<button class="tool" data-study="share">${t("studyShare")}</button>` +
@@ -1219,6 +1221,9 @@ function trackMe(){
   if(pos !== STUDY.me.pos || sec !== STUDY.me.sec){ STUDY.me = {pos, sec, w:null}; studyTick(false); refreshStudy(); }
 }
 addEventListener("scroll", ()=>{ if(!STUDY.id) return; clearTimeout(STUDY.trackTimer); STUDY.trackTimer = setTimeout(trackMe, 250); }, {passive:true});
+$("#content").addEventListener("keydown", e=>{
+  if((e.key==="Enter"||e.key===" ") && e.target.classList && e.target.classList.contains("w")){ e.preventDefault(); e.target.click(); }
+});
 $("#content").addEventListener("click", e=>{
   const w = e.target.closest && e.target.closest(".w"); if(!w || !STUDY.id) return;
   const v = w.closest(".v[data-pos]"); if(!v) return;
