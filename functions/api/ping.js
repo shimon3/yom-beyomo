@@ -20,5 +20,10 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare(
     "INSERT OR IGNORE INTO visits (day, uid, lang, city, standalone) VALUES (?1, ?2, ?3, ?4, ?5)"
   ).bind(today(), b.uid, clip(b.lang, 5), clip(b.city, 10), b.standalone ? 1 : 0).run();
+  /* Occasionally drop visits older than 90 days (the stats page shows 90 days). */
+  if (Math.random() < 0.02) {
+    const cutoff = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(new Date(Date.now() - 90 * 86400000));
+    await env.DB.prepare("DELETE FROM visits WHERE day < ?1").bind(cutoff).run();
+  }
   return json({ ok: true });
 }
