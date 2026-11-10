@@ -89,6 +89,12 @@ main{padding-block:16px 40px;padding-inline:16px}
 .peer-w{background:var(--accent-soft);outline:2px solid var(--accent);border-radius:4px}
 .my-w{text-decoration:underline solid var(--done);text-decoration-thickness:2px;text-underline-offset:4px;border-radius:3px;outline:1px dashed var(--done)}
 .w{cursor:pointer}
+.tools-open{flex:none;align-self:center;margin-inline-start:4px}
+.daycard{font-size:.82rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.5}
+.dc-cycle{display:inline-flex;align-items:center;gap:6px}
+.dc-cycle .cycle-bar{display:inline-block;width:56px;height:3px;vertical-align:middle}
+.tools-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 14px}
+.tools-grid .tool{min-height:44px;text-align:center}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -194,7 +200,9 @@ footer a{color:inherit}
         <span class="badge" id="badge" hidden></span>
       </div>
       <button class="nav" id="nextDay" data-t="next"></button>
+      <button class="tool tools-open" id="tOpen" aria-haspopup="dialog" aria-expanded="false" data-t="tools"></button>
     </div>
+    <div class="daycard" id="daycard" hidden></div>
     <nav class="chips" id="chips" role="tablist"></nav>
     <div class="progress" aria-hidden="true"><i id="prog"></i></div>
   </div>
@@ -226,6 +234,22 @@ footer a{color:inherit}
   <button type="button" class="x" id="a2hsX" data-ta="close">×</button>
 </div>
 
+<dialog id="toolsDlg" class="dlg" aria-labelledby="toolsTitle">
+  <h3 id="toolsTitle" data-t="tools"></h3>
+  <div class="tools-grid">
+    <button class="tool" id="tAll" data-t="all" aria-pressed="false"></button>
+    <button class="tool" id="tRashi" data-t="rashi" aria-pressed="false"></button>
+    <button class="tool" id="tNikud" data-t="nikud" aria-pressed="false"></button>
+    <button class="tool" id="tSmaller" data-ta="smaller">A−</button>
+    <button class="tool" id="tBigger" data-ta="bigger">A+</button>
+    <button class="tool wa" id="tWa"><span data-t="wa"></span></button>
+    <button class="tool" id="tStudy" data-t="studyBtn"></button>
+    <button class="tool" id="tCal" data-t="calBtn"></button>
+    <button class="tool" id="tImg" data-t="imgBtn"></button>
+    <button class="tool" id="tShare" data-t="share"></button>
+  </div>
+  <form method="dialog"><button class="tool" data-t="close"></button></form>
+</dialog>
 <dialog id="fbDlg">
   <form method="dialog" class="dlg" id="fbForm">
     <h3 data-t="fbTitle"></h3>
@@ -317,7 +341,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", imgBtn:"תמונה לשיתוף", imgTitle:"יום ביומו — לימוד היום", imgSite:"yom-beyomo.pages.dev", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", tools:"כלים", imgBtn:"תמונה לשיתוף", imgTitle:"יום ביומו — לימוד היום", imgSite:"yom-beyomo.pages.dev", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -356,7 +380,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", imgBtn:"Image à partager", imgTitle:"Étude du jour · יום ביומו", imgSite:"yom-beyomo.pages.dev", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", tools:"Outils", imgBtn:"Image à partager", imgTitle:"Étude du jour · יום ביומו", imgSite:"yom-beyomo.pages.dev", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -721,18 +745,6 @@ function applyLang(){
   $("#badge").textContent = t("badge");
   setStatus();
 }
-/* Where we are in the monthly Tehilim cycle (30 days, by Hebrew day of the month).
-   Shown only when the calendar data is available; no guess when it is not. */
-async function cycleBar(){
-  const iso = state.iso; if(!iso) return;
-  let bar = $("#cycle");
-  if(!bar){ bar = document.createElement("div"); bar.id = "cycle"; bar.className = "cycle"; $("#chips").after(bar); }
-  try{
-    const ctx = await getCtx(iso); if(state.iso !== iso) return;
-    const n = Math.min(ctx.h.hd, 30);
-    bar.innerHTML = `<div class="cycle-lbl">${t("cycleTeh")(n)}</div><div class="cycle-bar" role="img" aria-label="${n}/30"><i style="width:${(n/30)*100}%"></i></div>`;
-  }catch{ bar.innerHTML = ""; }
-}
 function renderChips(){
   const done = getDone(state.iso), vis = visible();
   $("#chips").innerHTML = vis.map(s=>`<button class="chip${done[s.id] ? " done" : ""}" role="tab" id="chip-${s.id}" aria-selected="${!settings.all && s.id===state.active}" data-id="${s.id}"><span class="tick">✓</span>${esc(secShort(s))}</button>`).join("");
@@ -763,16 +775,7 @@ function streakLabel(){
   if(hasDone(today)) return msg;
   return msg ? `${msg} · ${t("streakResume")}` : t("streakStart");
 }
-function toolsBar(list){
-  return `<div class="tools">
-    <button class="tool" id="tAll" aria-pressed="${settings.all}">${t("all")}</button>
-    ${list.some(s=>s.id==="chumash") ? `<button class="tool" id="tRashi" aria-pressed="${settings.rashi}">${t("rashi")}</button>` : ""}
-    <button class="tool" id="tNikud" aria-pressed="${settings.nikud}">${t("nikud")}</button>
-    <button class="tool" id="tSmaller" aria-label="${t("smaller")}">A−</button>
-    <button class="tool" id="tBigger" aria-label="${t("bigger")}">A+</button>
-    <button class="tool wa" id="tWa">${WA_ICON}${t("wa")}</button>
-    <button class="tool" id="tCal">${t("calBtn")}</button><button class="tool" id="tStudy">${t("studyBtn")}</button><button class="tool" id="tImg">${t("imgBtn")}</button><button class="tool" id="tShare">${t("share")}</button><span class="streak">${streakLabel()}</span></div>`;
-}
+function toolsBar(){ return ""; }
 /* Wrap each word of a verse in <span class="w" data-w="i"> so a study partner can point to it.
    Works on text nodes only, so existing markup is kept as it is. */
 function wordsHTML(html){
@@ -839,10 +842,10 @@ function render(){
   if(!vis.length){ $("#content").innerHTML = `<div class="msg">${t("none")}</div>`; renderChips(); return; }
   if(!vis.some(s=>s.id===state.active)) state.active = vis[0].id;
   const list = settings.all ? vis : [SECTIONS.find(s=>s.id===state.active)];
-  $("#content").innerHTML = toolsBar(list) + list.map(shell).join(`<hr class="sep">`);
+  $("#content").innerHTML = list.map(shell).join(`<hr class="sep">`);
   list.forEach(sec=>fill($("#s-"+sec.id), sec, state.iso, my));
   renderChips();
-  cycleBar();
+  renderDayCard();
 }
 
 async function setDate(iso, auto=false){
@@ -915,7 +918,7 @@ $("#content").addEventListener("click", e=>{
   const b = e.target.closest("button"); if(!b) return;
   if(b.dataset.done){
     const id = b.dataset.done, d = getDone(state.iso); d[id] = !d[id]; store.set("done:"+state.iso, d);
-    b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips(); const sk = document.querySelector(".streak"); if(sk) sk.textContent = streakLabel();
+    b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips(); renderDayCard();
     const nxt = d[id] && visible().find(s=>!d[s.id]);
     if(nxt){
       if(settings.all){ const el = $("#s-"+nxt.id); if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth"}), 250); }
@@ -923,15 +926,6 @@ $("#content").addEventListener("click", e=>{
     }
   }
   if(b.dataset.retry){ down.clear(); setStatus(); render(); }
-  if(b.id==="tAll"){ settings.all = !settings.all; saveSettings(); render(); }
-  if(b.id==="tRashi"){ settings.rashi = !settings.rashi; saveSettings(); render(); }
-  if(b.id==="tNikud"){ settings.nikud = !settings.nikud; saveSettings(); render(); }
-  if(b.id==="tCal"){ addToCalendar(b); }
-  if(b.id==="tStudy"){ studyStart(b); }
-  if(b.id==="tImg"){ shareImage(b); }
-  if(b.id==="tShare"){ share(b); }
-  if(b.id==="tWa"){ share(b, true); }
-  if(b.id==="tBigger"||b.id==="tSmaller"){ settings.size = Math.min(2.2, Math.max(1, +(settings.size + (b.id==="tBigger" ? .1 : -.1)).toFixed(2))); saveSettings(); applyTheme(); }
 });
 $("#statusRetry").onclick = ()=>{ down.clear(); setStatus(); render(); };
 addEventListener("online", ()=>{ setStatus(); render(); });
@@ -1086,16 +1080,6 @@ async function addToCalendar(btn){
   btn.disabled = false; btn.textContent = old;
 }
 
-/* Public count of today's visitors, shown only above a threshold (see functions/api/today.js). */
-async function todayCount(){
-  let el = $("#todayCount");
-  if(!el){ el = document.createElement("div"); el.id = "todayCount"; el.className = "today-count"; el.hidden = true; $(".datebar").after(el); }
-  try{
-    const r = await fetch("/api/today", {cache:"no-store"}); if(!r.ok) return;
-    const {count} = await r.json();
-    el.textContent = count ? t("todayCount")(count) : ""; el.hidden = !count;
-  }catch{ el.hidden = true; }
-}
 /* ---------- étudier à deux : session partagée ----------
    Each device posts only its own position (day, section, verse, word) and reads the others'.
    The text itself is never sent: each person loads it from Sefaria as usual. */
@@ -1307,8 +1291,55 @@ async function shareImage(btn){
   finally{ btn.disabled = false; btn.textContent = old; }
 }
 
+/* ---------- ligne du jour : série, cycle des Tehillim, visiteurs (discret, une seule ligne) ---------- */
+let visitorCount = null;
+async function loadVisitorCount(){
+  try{ const r = await fetch("/api/today", {cache:"no-store"}); visitorCount = r.ok ? ((await r.json()).count || null) : null; }
+  catch{ visitorCount = null; }
+  renderDayCard();
+}
+function renderDayCard(){
+  const card = $("#daycard"); if(!card) return;
+  const iso = state.iso; if(!iso){ card.hidden = true; return; }
+  const pieces = [streakLabel()];
+  if(visitorCount) pieces.push(t("todayCount")(visitorCount));
+  const paint = cycle => {
+    const html = [pieces.filter(Boolean).map(esc).join(" · "), cycle].filter(Boolean).join(" · ");
+    card.innerHTML = html; card.hidden = !html;
+  };
+  paint("");                       // the line appears at once, without waiting for the calendar
+  getCtx(iso).then(ctx => {
+    if(state.iso !== iso) return;
+    const n = Math.min(ctx.h.hd, 30);
+    paint(`<span class="dc-cycle">${esc(t("cycleTeh")(n))}<span class="cycle-bar" role="img" aria-label="${n}/30"><i style="width:${(n/30)*100}%"></i></span></span>`);
+  }).catch(()=>{});
+}
+
+/* ---------- menu Outils (fenêtre) ---------- */
+function syncTools(){
+  $("#tAll").setAttribute("aria-pressed", settings.all);
+  $("#tRashi").setAttribute("aria-pressed", settings.rashi);
+  $("#tNikud").setAttribute("aria-pressed", settings.nikud);
+  $("#tRashi").hidden = !visible().some(s=>s.id==="chumash");
+}
+$("#tOpen").onclick = ()=>{ syncTools(); $("#toolsDlg").showModal(); $("#tOpen").setAttribute("aria-expanded","true"); };
+$("#toolsDlg").addEventListener("close", ()=>$("#tOpen").setAttribute("aria-expanded","false"));
+$("#toolsDlg").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.id==="tAll"){ settings.all = !settings.all; saveSettings(); render(); syncTools(); return; }
+  if(b.id==="tRashi"){ settings.rashi = !settings.rashi; saveSettings(); render(); syncTools(); return; }
+  if(b.id==="tNikud"){ settings.nikud = !settings.nikud; saveSettings(); render(); syncTools(); return; }
+  if(b.id==="tBigger"||b.id==="tSmaller"){ settings.size = Math.min(2.2, Math.max(1, +(settings.size + (b.id==="tBigger" ? .1 : -.1)).toFixed(2))); saveSettings(); applyTheme(); return; }
+  if(b.id==="tCal"){ $("#toolsDlg").close(); addToCalendar(b); return; }
+  if(b.id==="tStudy"){ $("#toolsDlg").close(); studyStart(b); return; }
+  if(b.id==="tImg"){ $("#toolsDlg").close(); shareImage(b); return; }
+  if(b.id==="tShare"){ $("#toolsDlg").close(); share(b); return; }
+  if(b.id==="tWa"){ $("#toolsDlg").close(); share(b, true); return; }
+});
+$("#tWa").insertAdjacentHTML("afterbegin", WA_ICON);
+
 /* ---------- start ---------- */
-applyTheme(); applyLang(); ping(); todayCount();
+applyTheme(); applyLang(); ping(); loadVisitorCount();
 const linked = new URLSearchParams(location.search).get("d");
 if(linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && !isNaN(Date.parse(linked))) setDate(linked);
 else goToday();
