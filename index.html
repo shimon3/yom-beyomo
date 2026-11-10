@@ -73,6 +73,14 @@ button{cursor:pointer}
 
 main{padding-block:16px 40px;padding-inline:16px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.study{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.85rem;padding:8px 0;border-top:1px solid var(--line);margin-top:8px}
+.study-txt{color:var(--ink)}
+.study-actions{display:flex;gap:6px;margin-inline-start:auto}
+.peer{box-shadow:inset 3px 0 0 var(--accent);border-radius:6px}
+.peer-tag{display:inline-block;font-family:var(--f-ui);font-size:.7rem;background:var(--accent);color:var(--paper);border-radius:6px;padding:0 6px;margin-inline-end:6px;vertical-align:middle}
+.peer-w{background:var(--accent-soft);outline:2px solid var(--accent);border-radius:4px}
+.my-w{text-decoration:underline dotted var(--done);text-underline-offset:4px}
+.w{cursor:pointer}
 .tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.85rem}
 .tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .sec{scroll-margin-top:200px}
@@ -301,7 +309,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -340,7 +348,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -727,7 +735,25 @@ function toolsBar(list){
     <button class="tool" id="tSmaller" aria-label="${t("smaller")}">A−</button>
     <button class="tool" id="tBigger" aria-label="${t("bigger")}">A+</button>
     <button class="tool wa" id="tWa">${WA_ICON}${t("wa")}</button>
-    <button class="tool" id="tShare">${t("share")}</button></div>`;
+    <button class="tool" id="tStudy">${t("studyBtn")}</button><button class="tool" id="tShare">${t("share")}</button></div>`;
+}
+/* Wrap each word of a verse in <span class="w" data-w="i"> so a study partner can point to it.
+   Works on text nodes only, so existing markup is kept as it is. */
+function wordsHTML(html){
+  const box = document.createElement("div"); box.innerHTML = html; let i = 0;
+  const walk = n => [...n.childNodes].forEach(ch => {
+    if(ch.nodeType === 3){
+      const frag = document.createDocumentFragment();
+      ch.textContent.split(/(\s+)/).forEach(part => {
+        if(!part) return;
+        if(/^\s+$/.test(part)){ frag.append(part); return; }
+        const sp = document.createElement("span"); sp.className = "w"; sp.dataset.w = String(i++); sp.textContent = part; frag.append(sp);
+      });
+      ch.replaceWith(frag);
+    } else if(ch.nodeType === 1) walk(ch);
+  });
+  walk(box);
+  return box.innerHTML;
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
@@ -748,7 +774,8 @@ function textHTML(sec, data){
     g.rows.map(r=>{
       const tag = sec.flow ? "span" : "p";
       const num = g.rows.length>1 || sec.id!=="seferhamitzvot" ? `<span class="vn">${gem(r.v)}</span>` : "";
-      let h = `<${tag} class="v">${num}${strip(clean(r.raw))}</${tag}>`;
+      const pos = `${cKey(r.c)}.${r.v}`;
+      let h = `<${tag} class="v" data-sec="${esc(sec.id)}" data-pos="${esc(pos)}">${num}${wordsHTML(strip(clean(r.raw)))}</${tag}>`;
       if(sec.id==="chumash" && settings.rashi && r.rashi && r.rashi.length) h += `<div class="rashi"><span class="lbl">רש״י</span>${strip(r.rashi.join(" "))}</div>`;
       return h;
     }).join("") + (sec.flow ? "</p>" : "")).join("") +
@@ -765,6 +792,7 @@ async function fill(el, sec, iso, my){
     if(my!==state.token) return;
     const sub = el.querySelector(".sub"); sub.textContent = data.sub; sub.dir = "auto";
     el.querySelector(".text").innerHTML = textHTML(sec, data);
+    refreshStudy();
   }catch(e){
     if(my!==state.token) return;
     el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
@@ -781,7 +809,7 @@ function render(){
 }
 
 async function setDate(iso, auto=false){
-  state.iso = iso; state.auto = auto; state.hebrew = "";
+  state.iso = iso; state.auto = auto; state.hebrew = ""; syncUrl();
   const [y,m,d] = parts(iso);
   $("#gdate").textContent = `${t("days")[weekday(iso)]} · ${d}.${m}.${y}`;
   $("#hdate").innerHTML = "&nbsp;";
@@ -861,6 +889,7 @@ $("#content").addEventListener("click", e=>{
   if(b.id==="tAll"){ settings.all = !settings.all; saveSettings(); render(); }
   if(b.id==="tRashi"){ settings.rashi = !settings.rashi; saveSettings(); render(); }
   if(b.id==="tNikud"){ settings.nikud = !settings.nikud; saveSettings(); render(); }
+  if(b.id==="tStudy"){ studyStart(b); }
   if(b.id==="tShare"){ share(b); }
   if(b.id==="tWa"){ share(b, true); }
   if(b.id==="tBigger"||b.id==="tSmaller"){ settings.size = Math.min(2.2, Math.max(1, +(settings.size + (b.id==="tBigger" ? .1 : -.1)).toFixed(2))); saveSettings(); applyTheme(); }
@@ -981,11 +1010,145 @@ $("#fbSend").onclick = async ()=>{
   $("#fbSend").disabled = false;
 };
 
+/* ---------- étudier à deux : session partagée ----------
+   Each device posts only its own position (day, section, verse, word) and reads the others'.
+   The text itself is never sent: each person loads it from Sefaria as usual. */
+const STUDY = {id:null, name:"", follow:false, full:false, peers:[], timer:null, busy:false,
+  lastSend:0, sentKey:"", me:{pos:null, sec:null, w:null}, followKey:"", autoScroll:false, autoTimer:null, trackTimer:null};
+const SID_RE = /^[a-f0-9]{32}$/;
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function newSessionId(){ const a = new Uint8Array(16); crypto.getRandomValues(a); return [...a].map(b=>b.toString(16).padStart(2,"0")).join(""); }
+function studyUrl(){ const u = new URL(location.href); u.searchParams.set("s", STUDY.id); if(state.iso) u.searchParams.set("d", state.iso); return u.toString(); }
+function cleanUrl(){ const u = new URL(location.href); u.searchParams.delete("s"); return u.toString(); }
+function syncUrl(){ if(STUDY.id && state.iso) history.replaceState(null, "", studyUrl()); }
+const peerName = p => p.name || t("studyDef");
+const sectionLabel = id => { const s = SECTIONS.find(x=>x.id===id); return s ? secShort(s) : id; };
+function myPresence(){ return {uid:deviceId(), name:STUDY.name, iso:state.iso, sec:STUDY.me.sec || state.active, pos:STUDY.me.pos, w:STUDY.me.w}; }
+function askName(){
+  if(settings.studyName !== undefined) return settings.studyName;
+  const v = prompt(t("studyAsk"), "");
+  if(v === null) return "";
+  settings.studyName = v.trim().slice(0,20); saveSettings(); return settings.studyName;
+}
+function flash(btn, text){ if(!btn) return; const old = btn.textContent; btn.textContent = text; setTimeout(()=>{ btn.textContent = old; }, 1600); }
+async function shareLink(btn){
+  const url = studyUrl();
+  if(navigator.share){ try{ await navigator.share({title:t("studyTitle"), url}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
+  try{ await navigator.clipboard.writeText(url); flash(btn, t("studyCopied")); }
+  catch{ window.prompt(t("studyShare"), url); }
+}
+async function studyStart(btn){
+  if(!STUDY.id){ askName(); studyOn(newSessionId()); }
+  await shareLink(btn);
+}
+function studyOn(id){
+  STUDY.id = id; STUDY.name = settings.studyName || t("studyDef");
+  STUDY.me = {pos:null, sec:null, w:null}; STUDY.peers = []; STUDY.sentKey = ""; STUDY.followKey = ""; STUDY.full = false;
+  if(!STUDY.timer) STUDY.timer = setInterval(()=>studyTick(false), 2000);
+  syncUrl(); studyBar(); studyTick(true);
+}
+function studyOff(){
+  clearInterval(STUDY.timer); STUDY.timer = null; STUDY.id = null; STUDY.peers = []; STUDY.full = false;
+  history.replaceState(null, "", cleanUrl()); studyBar(); refreshStudy();
+}
+async function studyTick(force){
+  if(!STUDY.id || STUDY.busy || !state.iso) return;
+  const mine = myPresence();
+  if(!mine.sec) return;
+  STUDY.busy = true;
+  try{
+    const now = Date.now(), key = JSON.stringify(mine);
+    if(force || (key !== STUDY.sentKey && now - STUDY.lastSend > 800) || now - STUDY.lastSend > 20000){
+      STUDY.lastSend = now; STUDY.sentKey = key;
+      fetch(`/api/session/${STUDY.id}`, {method:"POST", headers:{"content-type":"application/json"}, body:key})
+        .then(r => { STUDY.full = r.status === 409; }).catch(()=>{});
+    }
+    const r = await fetch(`/api/session/${STUDY.id}?uid=${encodeURIComponent(mine.uid)}`, {cache:"no-store"});
+    if(r.ok){ const d = await r.json(); STUDY.peers = d.peers || []; }
+  }catch{}
+  finally{ STUDY.busy = false; studyBar(); refreshStudy(); }
+}
+function studyBar(){
+  let bar = $("#study");
+  if(!STUDY.id){ if(bar) bar.remove(); return; }
+  if(!bar){
+    bar = document.createElement("div"); bar.id = "study"; bar.className = "study";
+    $(".top .wrap").append(bar); bar.addEventListener("click", studyBarClick);
+  }
+  const who = STUDY.peers.map(p => {
+    const vnum = p.pos ? p.pos.split(".").pop() : "";
+    const where = p.iso !== state.iso ? " · " + p.iso : (!settings.all && p.sec !== state.active ? " · " + sectionLabel(p.sec) : "");
+    return `<b>${esc(peerName(p))}</b>` + (vnum ? ` · ${t("studyVerse")} ${esc(vnum)}` : "") + (p.w != null ? ` · ${t("studyWord")} ${p.w + 1}` : "") + esc(where);
+  }).join(" · ");
+  const label = STUDY.peers.length ? `${t("studyWho")} ${who}` : t("studyWait");
+  const html = `<span class="study-txt">${label}</span>` +
+    (STUDY.full ? `<span class="study-txt">${t("studyFull")}</span>` : "") +
+    `<span class="study-actions"><button class="tool" data-study="follow" aria-pressed="${STUDY.follow}">${t("studyFollow")}</button>` +
+    `<button class="tool" data-study="share">${t("studyShare")}</button>` +
+    `<button class="tool" data-study="leave">${t("studyLeave")}</button></span>`;
+  if(bar.dataset.sig !== html){ bar.dataset.sig = html; bar.innerHTML = html; }
+}
+function studyBarClick(e){
+  const b = e.target.closest("button[data-study]"); if(!b) return;
+  if(b.dataset.study === "follow"){ STUDY.follow = !STUDY.follow; STUDY.followKey = ""; studyBar(); refreshStudy(); }
+  if(b.dataset.study === "share") shareLink(b);
+  if(b.dataset.study === "leave") studyOff();
+}
+function refreshStudy(){
+  document.querySelectorAll("#content .peer, #content .peer-w, #content .my-w").forEach(el=>el.classList.remove("peer","peer-w","my-w"));
+  document.querySelectorAll("#content .peer-tag").forEach(el=>el.remove());
+  if(!STUDY.id) return;
+  const verses = [...document.querySelectorAll("#content .v[data-pos]")];
+  const findVerse = (pos, sec) => verses.find(v => v.dataset.pos === pos && v.dataset.sec === sec);
+  if(STUDY.me.w != null && STUDY.me.sec){
+    const v = findVerse(STUDY.me.pos, STUDY.me.sec), w = v && v.querySelector(`.w[data-w="${STUDY.me.w}"]`);
+    if(w) w.classList.add("my-w");
+  }
+  for(const p of STUDY.peers){
+    if(p.iso !== state.iso || !p.pos) continue;
+    const el = findVerse(p.pos, p.sec); if(!el) continue;
+    el.classList.add("peer");
+    const tag = document.createElement("span"); tag.className = "peer-tag"; tag.textContent = peerName(p); el.prepend(tag);
+    if(p.w != null){ const w = el.querySelector(`.w[data-w="${p.w}"]`); if(w) w.classList.add("peer-w"); }
+  }
+  if(STUDY.follow && STUDY.peers.length) followPeer(STUDY.peers[0], verses);
+}
+function followPeer(p, verses){
+  if(p.iso && p.iso !== state.iso){ STUDY.followKey = ""; setDate(p.iso); return; }
+  if(!settings.all && p.sec && p.sec !== state.active && visible().some(s=>s.id===p.sec)){ STUDY.followKey = ""; state.active = p.sec; render(); return; }
+  const key = [p.iso, p.sec, p.pos, p.w].join("|");
+  if(key === STUDY.followKey) return;
+  const el = verses.find(v => v.dataset.pos === p.pos && v.dataset.sec === p.sec);
+  if(!el) return;
+  STUDY.followKey = key;
+  STUDY.autoScroll = true; clearTimeout(STUDY.autoTimer);
+  el.scrollIntoView({behavior: reducedMotion() ? "auto" : "smooth", block: "center"});
+  STUDY.autoTimer = setTimeout(()=>{ STUDY.autoScroll = false; }, 1200);
+}
+/* My own position follows my reading: the verse at the top of the screen, or the word I tapped. */
+function trackMe(){
+  if(!STUDY.id || STUDY.autoScroll) return;
+  let best = null;
+  for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= 180) best = el; else break; }
+  if(!best) return;
+  const pos = best.dataset.pos, sec = best.dataset.sec;
+  if(pos !== STUDY.me.pos || sec !== STUDY.me.sec){ STUDY.me = {pos, sec, w:null}; studyTick(false); refreshStudy(); }
+}
+addEventListener("scroll", ()=>{ if(!STUDY.id) return; clearTimeout(STUDY.trackTimer); STUDY.trackTimer = setTimeout(trackMe, 250); }, {passive:true});
+$("#content").addEventListener("click", e=>{
+  const w = e.target.closest && e.target.closest(".w"); if(!w || !STUDY.id) return;
+  const v = w.closest(".v[data-pos]"); if(!v) return;
+  STUDY.me = {pos:v.dataset.pos, sec:v.dataset.sec, w:Number(w.dataset.w)};
+  studyTick(false); refreshStudy();
+});
+
 /* ---------- start ---------- */
 applyTheme(); applyLang(); ping();
 const linked = new URLSearchParams(location.search).get("d");
 if(linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && !isNaN(Date.parse(linked))) setDate(linked);
 else goToday();
+const joinId = new URLSearchParams(location.search).get("s");
+if(joinId && SID_RE.test(joinId)) studyOn(joinId);
 </script>
 </body>
 </html>
