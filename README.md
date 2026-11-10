@@ -78,7 +78,7 @@ et les 100 derniers avis. Les coordonnées de contact des avis ne sont accessibl
 
 ## Lecteur דבר מלכות (branche de préparation)
 
-Le lien `דבר מלכות` ouvre une page interne `/dvar-malkhout.html` au lieu d'un site externe.
+Le lien `דבר מלכות` n'apparaît plus sur l'accueil tant que l'autorisation de l'éditeur n'est pas obtenue. La route `/dvar-malkhout` (sans extension) répond 503 tant que le lecteur privé n'est pas activé.
 Le lecteur PDF est **désactivé par défaut** : le fournisseur indique que les téléchargements sont réservés à l'usage personnel (https://dvarmalchus.org/). Une autorisation explicite pour un affichage destiné aux visiteurs est à confirmer.
 Aucun PDF n'est recopié, hébergé, téléchargé par le serveur ou mis en cache par cette fonctionnalité.
 
