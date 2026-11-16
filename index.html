@@ -186,6 +186,13 @@ footer a{color:inherit}
 .tanya-fr{direction:ltr;text-align:left;font-family:var(--f-ui);font-size:.96rem;line-height:1.7;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px;color:var(--ink)}
 .tanya-fr small{display:block;font-size:.76rem;color:var(--muted);margin-bottom:4px}
 .tanya-word-tip{direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0 12px}
+
+/* Source-backed Hebrew translation for Hayom Yom */
+.hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
+.hy-translation-panel{background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.95em;line-height:1.8}
+.hy-translation-panel[hidden]{display:none}
+.hy-translation-panel p{margin:6px 0 10px}
+.hy-translation-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -856,7 +863,8 @@ function textHTML(sec, data){
         ? r.paragraphs.map(p=>'<p class="v" dir="rtl">'+esc(p)+'</p>').join("")
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
-      return '<div dir="rtl" lang="he">'+body+'</div>'+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
+      const translateButton='<div class="hy-translation-row"><button type="button" class="tool" data-hy-translate="1" aria-expanded="false">תרגום / Traduction</button></div><div class="hy-translation-panel" dir="rtl" lang="he" hidden></div>';
+      return '<div dir="rtl" lang="he">'+body+'</div>'+translateButton+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
     }).join("");
   }
 
@@ -971,6 +979,34 @@ $("#chips").addEventListener("click", e=>{
 });
 $("#content").addEventListener("click", e=>{
   const b = e.target.closest("button"); if(!b) return;
+
+  if(b.dataset.hyTranslate){
+    const panel=b.parentElement.nextElementSibling;
+    if(!panel || !panel.classList.contains("hy-translation-panel"))return;
+    if(!panel.hidden){panel.hidden=true;b.setAttribute("aria-expanded","false");return;}
+    panel.hidden=false;b.setAttribute("aria-expanded","true");
+    if(panel.dataset.loaded)return;
+    panel.textContent="מחפש תרגום עברי ממקור קיים…";b.disabled=true;
+    const requestedDate=state.iso;
+    try{
+      const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(requestedDate));
+      const data=await response.json();
+      if(!response.ok || !data.translation){
+        panel.textContent=data.error==="translation-not-found" ? "לא נמצא תרגום עברי מאומת ליום זה." : "לא ניתן לטעון כרגע את התרגום העברי.";
+        return;
+      }
+      if(state.iso!==requestedDate || !panel.isConnected)return;
+      panel.replaceChildren();
+      const heading=document.createElement("strong");heading.textContent="תרגום לעברית — חב״דפדיה";panel.append(heading);
+      const p=document.createElement("p");p.textContent=data.translation;panel.append(p);
+      const source=document.createElement("small");
+      source.textContent="מקור: חב״דפדיה · CC BY-SA · תרגום קיים, לא תרגום אוטומטי · ";
+      const link=document.createElement("a");link.href=data.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="מקור וייחוס";
+      source.append(link);panel.append(source);panel.dataset.loaded="1";
+    }catch{panel.textContent="לא ניתן לטעון כרגע את התרגום העברי.";}
+    finally{if(b.isConnected)b.disabled=false;}
+    return;
+  }
   if(b.dataset.done){
     const id = b.dataset.done, d = getDone(state.iso); d[id] = !d[id]; store.set("done:"+state.iso, d);
     b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips(); renderDayCard();
