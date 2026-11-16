@@ -191,6 +191,10 @@ footer a{color:inherit}
 .hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
 .hy-translation-panel{background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.95em;line-height:1.8}
 .hy-translation-panel[hidden]{display:none}
+.hy-french-panel{background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.95em;line-height:1.8}
+.hy-french-panel p{margin:6px 0 10px}
+.hy-french-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
+.hy-french-panel a{overflow-wrap:anywhere}
 .hy-translation-panel p{margin:6px 0 10px}
 .hy-translation-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
 </style>
@@ -864,7 +868,8 @@ function textHTML(sec, data){
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
       const translation='<div class="hy-translation-panel" dir="rtl" lang="he" role="status"><strong>תרגום לעברית</strong><p>טוען תרגום ממקור קיים…</p></div>';
-      return '<div dir="rtl" lang="he">'+body+'</div>'+translation+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
+      const french='<div class="hy-french-panel" dir="ltr" lang="fr" role="status"><strong>Traduction française</strong><p>Chargement…</p></div>';
+      return '<div dir="rtl" lang="he">'+body+'</div>'+translation+french+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
     }).join("");
   }
 
@@ -889,25 +894,64 @@ function errText(e){
 }
 async function loadHayomYomHebrew(el, iso, my){
   const panels=[...el.querySelectorAll(".hy-translation-panel")];
-  if(!panels.length)return;
+  const frenchPanels=[...el.querySelectorAll(".hy-french-panel")];
+  if(!panels.length && !frenchPanels.length)return;
+  // The user's API contains calendar metadata and verified original source links,
+  // not a French translation. Never present a source link as text received from the API.
+  const metadataPromise=fetch("https://hayom-yom-api.shmouel6.workers.dev/api/days/"+encodeURIComponent(iso),{
+    signal:AbortSignal.timeout(10000)
+  }).then(async response=>response.ok?response.json():null).catch(()=>null);
+  let translation=null;
   try{
     const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(iso));
     const data=await response.json();
     if(my!==state.token || !el.isConnected)return;
+    if(response.ok && data.translation && data.language==="he")translation=data.translation;
     for(const panel of panels){
       panel.replaceChildren();
-      if(response.ok && data.translation && data.language==="he"){
+      if(translation){
         const heading=document.createElement("strong");heading.textContent="תרגום לעברית";panel.append(heading);
-        const text=document.createElement("p");text.textContent=data.translation;panel.append(text);
+        const text=document.createElement("p");text.textContent=translation;panel.append(text);
         const credit=document.createElement("small");credit.textContent="מקור: חב״דפדיה · CC BY-SA · ";
-        const link=document.createElement("a");link.href=data.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="למקור ולייחוס";
-        credit.append(link);panel.append(credit);
+        if(/^https:\/\//.test(data.url||"")){
+          const link=document.createElement("a");link.href=data.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="למקור ולייחוס";
+          credit.append(link);
+        }
+        panel.append(credit);
       }else{
         panel.textContent=data.error==="translation-not-found" ? "לא נמצא תרגום עברי קיים ליום זה." : "התרגום העברי אינו זמין כרגע.";
       }
     }
   }catch{
-    if(my===state.token && el.isConnected)panels.forEach(panel=>{panel.textContent="התרגום העברי אינו זמין כרגע.";});
+    if(my!==state.token || !el.isConnected)return;
+    panels.forEach(panel=>{panel.textContent="התרגום העברי אינו זמין כרגע.";});
+  }
+  const metadata=await metadataPromise;
+  if(my!==state.token || !el.isConnected)return;
+  let frenchText=null;
+  if(translation){
+    try{frenchText=await translateFrench(translation);}
+    catch{frenchText=null;}
+  }
+  if(my!==state.token || !el.isConnected)return;
+  for(const panel of frenchPanels){
+    panel.replaceChildren();
+    const heading=document.createElement("strong");heading.textContent="Traduction française";panel.append(heading);
+    const paragraph=document.createElement("p");
+    paragraph.textContent=frenchText||"Traduction automatique indisponible pour cette date.";
+    panel.append(paragraph);
+    if(frenchText){
+      const notice=document.createElement("small");
+      notice.textContent="Traduction automatique hébreu → français (MyMemory), à vérifier.";
+      panel.append(notice);
+    }
+    const sourceUrl=metadata?.source_url;
+    if(typeof sourceUrl==="string" && /^https:\/\/(?:www\.)?loubavitch\.fr\/etude\//.test(sourceUrl)){
+      const line=document.createElement("p");
+      const link=document.createElement("a");link.href=sourceUrl;link.target="_blank";link.rel="noopener noreferrer";
+      link.textContent="Lire la version française sur Loubavitch.fr";
+      line.append(link);panel.append(line);
+    }
   }
 }
 async function fill(el, sec, iso, my){
