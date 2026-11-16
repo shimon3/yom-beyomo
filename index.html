@@ -181,20 +181,25 @@ footer a{color:inherit}
 .a2hs .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .a2hs .x{flex:none;border:0;background:transparent;color:var(--muted);font-size:1.3rem;line-height:1;padding:0 2px}
 
-/* Traduction française facultative — Tanya */
+/* French translation layout and visibility controls */
 .tanya-translation-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 22px;font-family:var(--f-ui)}
-.tanya-fr{direction:ltr;text-align:left;font-family:var(--f-ui);font-size:.96rem;line-height:1.7;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px;color:var(--ink)}
-.tanya-fr small{display:block;font-size:.76rem;color:var(--muted);margin-bottom:4px}
+.tanya-translation-tools small{font-size:.78rem;color:var(--muted)}
+.tanya-fr{direction:ltr;text-align:left;font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui);background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:clamp(12px,1.8vw,18px);margin:0 0 18px;color:var(--ink)}
+.tanya-fr-head,.hy-french-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.tanya-fr small{display:block;font-size:.78rem;color:var(--muted)}
+.tanya-fr-body{display:block;max-width:78ch}
+.tanya-fr-body[hidden],.hy-french-content[hidden]{display:none}
+.translation-toggle{flex:none;white-space:nowrap;font:500 .84rem/1.2 var(--f-ui)}
 .tanya-word-tip{direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0 12px}
 
-/* Source-backed Hebrew translation for Hayom Yom */
+/* Source-backed Hebrew and French translations for Hayom Yom */
 .hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
 .hy-translation-panel{background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.95em;line-height:1.8}
 .hy-translation-panel[hidden]{display:none}
-.hy-french-panel{background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.95em;line-height:1.8}
-.hy-french-panel p{margin:6px 0 10px}
-.hy-french-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
-.hy-french-panel a{overflow-wrap:anywhere}
+.hy-french-panel{direction:ltr;text-align:left;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:clamp(12px,1.8vw,18px);margin:0 0 16px;color:var(--ink);font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui)}
+.hy-french-panel p{max-width:78ch;margin:8px 0 0;overflow-wrap:anywhere}
+.hy-french-head strong{font-size:1.05em}
+@media(max-width:600px){.hy-french-head,.tanya-fr-head{align-items:flex-start}.hy-french-panel,.tanya-fr{font-size:1rem;line-height:1.7}}
 .hy-study-meta{direction:ltr;text-align:left;border-bottom:1px solid var(--line);margin:0 0 12px;padding:0 0 8px;font:400 .9rem/1.6 var(--f-ui)}
 .hy-study-meta p{margin:3px 0}
 .hy-translation-panel p{margin:6px 0 10px}
@@ -846,19 +851,27 @@ async function translateFrench(hebrew){
 async function showTanyaFrench(secEl){
   if(!secEl || !settings.tanyaFrench) return;
   const items=[...secEl.querySelectorAll(".v[data-sec=tanya]")];
-  for(const paragraph of items){
+  for(const [index,paragraph] of items.entries()){
     if(!secEl.isConnected || !settings.tanyaFrench) return;
     if(paragraph.nextElementSibling?.classList.contains("tanya-fr")) continue;
     const div=document.createElement("div");div.className="tanya-fr";div.dir="ltr";div.lang="fr";
-    const small=document.createElement("small");small.textContent="Traduction automatique · hébreu → français";div.append(small);
-    const body=document.createElement("span");body.textContent="Traduction en cours…";div.append(body);
-    paragraph.after(div);
+    const head=document.createElement("div");head.className="tanya-fr-head";
+    const label=document.createElement("small");label.textContent="Traduction automatique · hébreu → français";
+    const body=document.createElement("span");body.className="tanya-fr-body";body.id="tanya-fr-"+index;body.textContent="Traduction en cours…";
+    const toggle=document.createElement("button");toggle.type="button";toggle.className="tool translation-toggle";toggle.textContent="Masquer";
+    toggle.setAttribute("aria-controls",body.id);toggle.setAttribute("aria-expanded","true");
+    toggle.addEventListener("click",()=>{
+      body.hidden=!body.hidden;
+      toggle.textContent=body.hidden?"Afficher":"Masquer";
+      toggle.setAttribute("aria-expanded",String(!body.hidden));
+    });
+    head.append(label,toggle);div.append(head,body);paragraph.after(div);
     try{body.textContent=await translateFrench(paragraph.textContent.replace(/^\s*[א-ת׳״]+\s*/,""));}
     catch{body.textContent="Traduction temporairement indisponible.";}
   }
 }
 function tanyaControls(){
-  return '<div class="tanya-translation-tools" dir="auto"><button class="tool" data-tanya-french="1" aria-pressed="'+settings.tanyaFrench+'">'+(settings.tanyaFrench?'✓ Masquer la traduction française':'Afficher la traduction française')+'</button><small>Traduction automatique externe, à vérifier.</small></div>';
+  return '<div class="tanya-translation-tools" dir="auto"><button class="tool" data-tanya-french="1" aria-pressed="'+settings.tanyaFrench+'">'+(settings.tanyaFrench?'✓ Masquer toutes les traductions françaises':'Afficher toutes les traductions françaises')+'</button><small>Traduction automatique externe, à vérifier.</small></div>';
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
@@ -952,12 +965,22 @@ async function loadHayomYomHebrew(el, iso, my){
     if(schedule.childElementCount)content.prepend(schedule);
   }
   const french=frenchResult?.data;
-  for(const panel of frenchPanels){
+  for(const [index,panel] of frenchPanels.entries()){
     panel.replaceChildren();
-    const heading=document.createElement("strong");heading.textContent="Traduction française";panel.append(heading);
+    const heading=document.createElement("strong");heading.textContent="Traduction française";
+    const head=document.createElement("div");head.className="hy-french-head";head.append(heading);
+    panel.append(head);
     if(frenchResult?.response.ok && french?.date===iso && french.language==="fr" && typeof french.translation==="string" && french.translation.trim()){
-      const paragraph=document.createElement("p");paragraph.textContent=french.translation;panel.append(paragraph);
-
+      const body=document.createElement("div");body.className="hy-french-content";body.id="hy-french-"+iso+"-"+index;
+      const paragraph=document.createElement("p");paragraph.textContent=french.translation;body.append(paragraph);
+      const toggle=document.createElement("button");toggle.type="button";toggle.className="tool translation-toggle";toggle.textContent="Masquer";
+      toggle.setAttribute("aria-controls",body.id);toggle.setAttribute("aria-expanded","true");
+      toggle.addEventListener("click",()=>{
+        body.hidden=!body.hidden;
+        toggle.textContent=body.hidden?"Afficher":"Masquer";
+        toggle.setAttribute("aria-expanded",String(!body.hidden));
+      });
+      head.append(toggle);panel.append(body);
     }else{
       const paragraph=document.createElement("p");
       paragraph.textContent=frenchResult?.response.status===404
