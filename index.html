@@ -863,8 +863,8 @@ function textHTML(sec, data){
         ? r.paragraphs.map(p=>'<p class="v" dir="rtl">'+esc(p)+'</p>').join("")
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
-      const translateButton='<div class="hy-translation-row"><button type="button" class="tool" data-hy-translate="1" aria-expanded="false">תרגום / Traduction</button></div><div class="hy-translation-panel" dir="rtl" lang="he" hidden></div>';
-      return '<div dir="rtl" lang="he">'+body+'</div>'+translateButton+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
+      const translation='<div class="hy-translation-panel" dir="rtl" lang="he" role="status"><strong>תרגום לעברית</strong><p>טוען תרגום ממקור קיים…</p></div>';
+      return '<div dir="rtl" lang="he">'+body+'</div>'+translation+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
     }).join("");
   }
 
@@ -887,6 +887,29 @@ function errText(e){
   if(e && e.kind==="down") return e.host==="hebcal" ? t("errHebcal") : t("errDown");
   return (e && e.message) || t("errLoad");
 }
+async function loadHayomYomHebrew(el, iso, my){
+  const panels=[...el.querySelectorAll(".hy-translation-panel")];
+  if(!panels.length)return;
+  try{
+    const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(iso));
+    const data=await response.json();
+    if(my!==state.token || !el.isConnected)return;
+    for(const panel of panels){
+      panel.replaceChildren();
+      if(response.ok && data.translation && data.language==="he"){
+        const heading=document.createElement("strong");heading.textContent="תרגום לעברית";panel.append(heading);
+        const text=document.createElement("p");text.textContent=data.translation;panel.append(text);
+        const credit=document.createElement("small");credit.textContent="מקור: חב״דפדיה · CC BY-SA · ";
+        const link=document.createElement("a");link.href=data.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="למקור ולייחוס";
+        credit.append(link);panel.append(credit);
+      }else{
+        panel.textContent=data.error==="translation-not-found" ? "לא נמצא תרגום עברי קיים ליום זה." : "התרגום העברי אינו זמין כרגע.";
+      }
+    }
+  }catch{
+    if(my===state.token && el.isConnected)panels.forEach(panel=>{panel.textContent="התרגום העברי אינו זמין כרגע.";});
+  }
+}
 async function fill(el, sec, iso, my){
   try{
     const data = await loadSection(sec.id, iso);
@@ -895,6 +918,7 @@ async function fill(el, sec, iso, my){
     el.querySelector(".text").innerHTML = textHTML(sec, data);
     refreshStudy();
     if(sec.id==="tanya" && settings.tanyaFrench) showTanyaFrench(el);
+    if(sec.id==="hayomyom") loadHayomYomHebrew(el,iso,my);
   }catch(e){
     if(my!==state.token) return;
     el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
@@ -980,33 +1004,6 @@ $("#chips").addEventListener("click", e=>{
 $("#content").addEventListener("click", async e=>{
   const b = e.target.closest("button"); if(!b) return;
 
-  if(b.dataset.hyTranslate){
-    const panel=b.parentElement.nextElementSibling;
-    if(!panel || !panel.classList.contains("hy-translation-panel"))return;
-    if(!panel.hidden){panel.hidden=true;b.setAttribute("aria-expanded","false");return;}
-    panel.hidden=false;b.setAttribute("aria-expanded","true");
-    if(panel.dataset.loaded)return;
-    panel.textContent="מחפש תרגום עברי ממקור קיים…";b.disabled=true;
-    const requestedDate=state.iso;
-    try{
-      const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(requestedDate));
-      const data=await response.json();
-      if(!response.ok || !data.translation){
-        panel.textContent=data.error==="translation-not-found" ? "לא נמצא תרגום עברי מאומת ליום זה." : "לא ניתן לטעון כרגע את התרגום העברי.";
-        return;
-      }
-      if(state.iso!==requestedDate || !panel.isConnected)return;
-      panel.replaceChildren();
-      const heading=document.createElement("strong");heading.textContent="תרגום לעברית — חב״דפדיה";panel.append(heading);
-      const p=document.createElement("p");p.textContent=data.translation;panel.append(p);
-      const source=document.createElement("small");
-      source.textContent="מקור: חב״דפדיה · CC BY-SA · תרגום קיים, לא תרגום אוטומטי · ";
-      const link=document.createElement("a");link.href=data.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="מקור וייחוס";
-      source.append(link);panel.append(source);panel.dataset.loaded="1";
-    }catch{panel.textContent="לא ניתן לטעון כרגע את התרגום העברי.";}
-    finally{if(b.isConnected)b.disabled=false;}
-    return;
-  }
   if(b.dataset.done){
     const id = b.dataset.done, d = getDone(state.iso); d[id] = !d[id]; store.set("done:"+state.iso, d);
     b.setAttribute("aria-pressed", d[id]); b.textContent = d[id] ? t("doneOn") : t("done"); renderChips(); renderDayCard();
