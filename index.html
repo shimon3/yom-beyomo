@@ -190,7 +190,7 @@ footer a{color:inherit}
 .tanya-fr-body{display:block;max-width:78ch}
 .tanya-fr-body[hidden],.hy-french-content[hidden]{display:none}
 .translation-toggle{flex:none;white-space:nowrap;font:500 .84rem/1.2 var(--f-ui)}
-.tanya-word-tip{direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0 12px}
+.tanya-word-tip{display:block;width:fit-content;max-width:min(100%,78ch);direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0 12px;overflow-wrap:anywhere}.tanya-fr-retry{margin-top:10px;font:500 .84rem/1.2 var(--f-ui)}.tanya-fr-retry[hidden]{display:none}
 
 /* Source-backed Hebrew and French translations for Hayom Yom */
 .hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
@@ -848,13 +848,19 @@ async function translateFrench(hebrew){
   }
   const result=translations.join(" "); frenchCache.set(phrase,result); return result;
 }
+function tanyaSourceText(paragraph){
+  const clone=paragraph.cloneNode(true);
+  clone.querySelectorAll(".tanya-word-tip").forEach(node=>node.remove());
+  return clone.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,"").replace(/^\s*[א-ת׳״]+\s*/,"").trim();
+}
 async function showTanyaFrench(secEl){
   if(!secEl || !settings.tanyaFrench) return;
   const items=[...secEl.querySelectorAll(".v[data-sec=tanya]")];
   for(const [index,paragraph] of items.entries()){
     if(!secEl.isConnected || !settings.tanyaFrench) return;
-    if(paragraph.nextElementSibling?.classList.contains("tanya-fr")) continue;
-    const div=document.createElement("div");div.className="tanya-fr";div.dir="ltr";div.lang="fr";
+    const sourcePos=paragraph.dataset.pos || String(index);
+    if(secEl.querySelector('.tanya-fr[data-source-pos="'+sourcePos+'"]')) continue;
+    const div=document.createElement("div");div.className="tanya-fr";div.dir="ltr";div.lang="fr";div.dataset.sourcePos=sourcePos;
     const head=document.createElement("div");head.className="tanya-fr-head";
     const label=document.createElement("small");label.textContent="Traduction automatique · hébreu → français";
     const body=document.createElement("span");body.className="tanya-fr-body";body.id="tanya-fr-"+index;body.textContent="Traduction en cours…";
@@ -865,9 +871,15 @@ async function showTanyaFrench(secEl){
       toggle.textContent=body.hidden?"Afficher":"Masquer";
       toggle.setAttribute("aria-expanded",String(!body.hidden));
     });
-    head.append(label,toggle);div.append(head,body);paragraph.after(div);
-    try{body.textContent=await translateFrench(paragraph.textContent.replace(/^\s*[א-ת׳״]+\s*/,""));}
-    catch{body.textContent="Traduction temporairement indisponible.";}
+    const retry=document.createElement("button");retry.type="button";retry.className="tool tanya-fr-retry";retry.textContent="Réessayer";retry.hidden=true;
+    async function loadTranslation(){
+      body.textContent="Traduction en cours…";retry.hidden=true;
+      try{body.textContent=await translateFrench(tanyaSourceText(paragraph));}
+      catch{body.textContent="Traduction temporairement indisponible.";retry.hidden=false;}
+    }
+    retry.addEventListener("click",loadTranslation);
+    head.append(label,toggle);div.append(head,body,retry);paragraph.after(div);
+    await loadTranslation();
   }
 }
 function tanyaControls(){
@@ -1117,11 +1129,13 @@ $("#content").addEventListener("click", async e=>{
   const word=e.target.closest(".w");
   if(!word || !word.closest("#s-tanya")) return;
   const parent=word.closest(".v");
-  parent.querySelectorAll(".tanya-word-tip").forEach(x=>x.remove());
-  const tip=document.createElement("span");tip.className="tanya-word-tip";tip.dir="ltr";tip.lang="fr";tip.textContent="Traduction du mot…";
-  word.after(tip);
+  const section=word.closest("#s-tanya");
+  section.querySelectorAll(".tanya-word-tip").forEach(x=>x.remove());
+  const tip=document.createElement("div");tip.className="tanya-word-tip";tip.dir="ltr";tip.lang="fr";tip.textContent="Traduction du mot…";
+  parent.after(tip);
   try{tip.textContent=await translateFrench(word.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,""));}
   catch{tip.textContent="Traduction indisponible.";}
+
 });
 $("#statusRetry").onclick = ()=>{ down.clear(); setStatus(); render(); };
 addEventListener("online", ()=>{
