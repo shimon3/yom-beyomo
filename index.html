@@ -861,10 +861,10 @@ function tanyaControls(){
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
-    return (data.readings||[]).map(r=>{
+    return (data.readings||[]).map((r,ri)=>{
       const source=r.url ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 0">'+(settings.lang==="fr"?"Source officielle ↗":"מקור הטקסט ↗")+'</a>' : "";
       const body=(r.paragraphs||[]).length
-        ? r.paragraphs.map(p=>'<p class="v" dir="rtl">'+esc(p)+'</p>').join("")
+        ? r.paragraphs.map((p,pi)=>'<p class="v" data-sec="hayomyom" data-pos="h'+ri+'p'+pi+'" dir="rtl">'+wordsHTML(esc(p))+'</p>').join("")
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
       const translation='<div class="hy-translation-panel" dir="rtl" lang="he" role="status"><strong>תרגום לעברית</strong><p>טוען תרגום ממקור קיים…</p></div>';
@@ -961,6 +961,7 @@ async function fill(el, sec, iso, my){
     const sub = el.querySelector(".sub"); sub.textContent = data.sub; sub.dir = "auto";
     el.querySelector(".text").innerHTML = textHTML(sec, data);
     refreshStudy();
+    if(STUDY.id) requestAnimationFrame(trackMe);
     if(sec.id==="tanya" && settings.tanyaFrench) showTanyaFrench(el);
     if(sec.id==="hayomyom") loadHayomYomHebrew(el,iso,my);
   }catch(e){
@@ -980,13 +981,19 @@ function render(){
 }
 
 async function setDate(iso, auto=false){
+  const changed = !!state.iso && state.iso !== iso;
   state.iso = iso; state.auto = auto; state.hebrew = ""; syncUrl();
+  if(changed && STUDY.id){
+    STUDY.me = {pos:null, sec:state.active, w:null};
+    STUDY.sentKey = "";
+  }
   const [y,m,d] = parts(iso);
   $("#gdate").textContent = `${t("days")[weekday(iso)]} · ${d}.${m}.${y}`;
   $("#hdate").innerHTML = "&nbsp;";
   $("#badge").hidden = !auto;
   $("#hayomLink").href = `https://www.chabad.org/dailystudy/hayomyom.asp?tdate=${m}/${d}/${y}`;
   render(); window.scrollTo({top:0});
+  if(changed && STUDY.id) studyTick(true);
   try{ const h = await hebDate(iso); if(state.iso===iso){ state.hebrew = h.hebrew; $("#hdate").textContent = h.hebrew; } }
   catch{ if(state.iso===iso) $("#hdate").textContent = ""; }
 }
@@ -1082,7 +1089,13 @@ $("#content").addEventListener("click", async e=>{
   catch{tip.textContent="Traduction indisponible.";}
 });
 $("#statusRetry").onclick = ()=>{ down.clear(); setStatus(); render(); };
-addEventListener("online", ()=>{ setStatus(); render(); });
+addEventListener("online", ()=>{
+  setStatus(); render();
+  if(STUDY.id){ clearTimeout(STUDY.retryTimer); STUDY.retryTimer = null; STUDY.sentKey = ""; studyTick(true); }
+});
+document.addEventListener("visibilitychange", ()=>{
+  if(STUDY.id && document.visibilityState === "visible") studyTick(true);
+});
 addEventListener("offline", setStatus);
 $("#prevDay").onclick = ()=>setDate(addDays(state.iso,-1));
 $("#nextDay").onclick = ()=>setDate(addDays(state.iso,1));
@@ -1237,7 +1250,8 @@ async function addToCalendar(btn){
 /* ---------- étudier à deux : session partagée ----------
    Each device posts only its own position (day, section, verse, word) and reads the others'.
    The text itself is never sent: each person loads it from Sefaria as usual. */
-const STUDY = {id:null, name:"", follow:false, full:false, peers:[], timer:null, busy:false,
+const STUDY = {id:null, name:"", follow:false, full:false, peers:[], timer:null, polling:false,
+  sending:false, pending:null, sendController:null, retryTimer:null, retryDelay:1000, seq:0,
   lastSend:0, sentKey:"", me:{pos:null, sec:null, w:null}, followKey:"", autoScroll:false, autoTimer:null, trackTimer:null};
 const SID_RE = /^[a-f0-9]{32}$/;
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1245,7 +1259,14 @@ function newSessionId(){ const a = new Uint8Array(16); crypto.getRandomValues(a)
 function studyUrl(){ const u = new URL(location.href); u.searchParams.set("s", STUDY.id); if(state.iso) u.searchParams.set("d", state.iso); return u.toString(); }
 function cleanUrl(){ const u = new URL(location.href); u.searchParams.delete("s"); return u.toString(); }
 function syncUrl(){ if(STUDY.id && state.iso) history.replaceState(null, "", studyUrl()); }
+const POLL_INTERVAL = 1000;
 const peerName = p => p.name || t("studyDef");
+function nextStudySeq(){
+  const previous = Number(store.get("studySeq")) || 0;
+  STUDY.seq = Math.max(Date.now() * 1000, previous + 1, STUDY.seq + 1);
+  store.set("studySeq", STUDY.seq); return STUDY.seq;
+}
+function presenceKey(p){ return JSON.stringify({uid:p.uid,name:p.name,iso:p.iso,sec:p.sec,pos:p.pos,w:p.w}); }
 const sectionLabel = id => { const s = SECTIONS.find(x=>x.id===id); return s ? secShort(s) : id; };
 function myPresence(){ return {uid:deviceId(), name:STUDY.name, iso:state.iso, sec:STUDY.me.sec || state.active, pos:STUDY.me.pos, w:STUDY.me.w}; }
 function askName(){
@@ -1268,29 +1289,92 @@ async function studyStart(btn){
 function studyOn(id, follow=false){
   STUDY.id = id; STUDY.name = settings.studyName || t("studyDef"); STUDY.follow = follow;
   STUDY.me = {pos:null, sec:null, w:null}; STUDY.peers = []; STUDY.sentKey = ""; STUDY.followKey = ""; STUDY.full = false;
-  if(!STUDY.timer) STUDY.timer = setInterval(()=>studyTick(false), 500);
+  STUDY.pending = null; STUDY.retryDelay = 1000; clearTimeout(STUDY.retryTimer); STUDY.retryTimer = null;
+  if(!STUDY.timer) STUDY.timer = setInterval(()=>studyTick(false), POLL_INTERVAL);
   syncUrl(); studyBar(); studyTick(true);
 }
 function studyOff(){
   clearInterval(STUDY.timer); STUDY.timer = null; STUDY.id = null; STUDY.peers = []; STUDY.full = false; STUDY.follow = false;
+  clearTimeout(STUDY.retryTimer); STUDY.retryTimer = null; STUDY.pending = null;
+  if(STUDY.sendController) STUDY.sendController.abort();
   history.replaceState(null, "", cleanUrl()); studyBar(); refreshStudy();
 }
+function queueStudySend(mine, force=false){
+  if(!STUDY.id || !mine.sec) return;
+  const key = presenceKey(mine), now = Date.now();
+  if(!force && STUDY.full && now - STUDY.lastSend <= 20000) return;
+  if(!force && key === STUDY.sentKey && now - STUDY.lastSend <= 10000) return;
+  STUDY.pending = {...mine, seq:nextStudySeq()};
+  if(STUDY.sending || STUDY.retryTimer) return;
+  flushStudySend();
+}
+async function flushStudySend(){
+  if(STUDY.sending || !STUDY.pending || !STUDY.id || !navigator.onLine) return;
+  STUDY.sending = true;
+  while(STUDY.pending && STUDY.id && navigator.onLine){
+    const payload = STUDY.pending; STUDY.pending = null;
+    const sessionId = STUDY.id;
+    const controller = new AbortController(); STUDY.sendController = controller;
+    const timeout = setTimeout(()=>controller.abort(), 8000);
+    try{
+      const r = await fetch(`/api/session/${sessionId}`, {
+        method:"POST", headers:{"content-type":"application/json"},
+        body:JSON.stringify(payload), signal:controller.signal
+      });
+      if(r.status === 409){
+        STUDY.full = true;
+        const latest = STUDY.pending || payload;
+        STUDY.sentKey = presenceKey(latest); STUDY.lastSend = Date.now(); STUDY.pending = null;
+        studyBar(); break;
+      }
+      if(!r.ok) throw new Error("presence write failed");
+      const ack = await r.json();
+      if(!ack.ok) throw new Error("presence write rejected");
+      if(sessionId === STUDY.id){
+        STUDY.full = false; STUDY.sentKey = presenceKey(payload);
+        STUDY.lastSend = Date.now(); STUDY.retryDelay = 1000;
+      }
+    }catch{
+      if(sessionId === STUDY.id){
+        STUDY.pending = STUDY.pending || payload;
+        STUDY.sentKey = "";
+        if(!STUDY.retryTimer){
+          const delay = STUDY.retryDelay;
+          STUDY.retryDelay = Math.min(STUDY.retryDelay * 2, 20000);
+          STUDY.retryTimer = setTimeout(()=>{
+            STUDY.retryTimer = null;
+            flushStudySend();
+          }, delay);
+        }
+      }
+      break;
+    }finally{
+      clearTimeout(timeout);
+      if(STUDY.sendController === controller) STUDY.sendController = null;
+    }
+  }
+  STUDY.sending = false;
+  if(STUDY.pending && STUDY.id && navigator.onLine && !STUDY.retryTimer) flushStudySend();
+}
 async function studyTick(force){
-  if(!STUDY.id || STUDY.busy || !state.iso) return;
+  if(!STUDY.id || !state.iso) return;
   const mine = myPresence();
   if(!mine.sec) return;
-  STUDY.busy = true;
+  queueStudySend(mine, force);
+  if(!navigator.onLine || document.visibilityState === "hidden" || STUDY.polling) return;
+  const sessionId = STUDY.id;
+  STUDY.polling = true;
+  const controller = new AbortController(), timeout = setTimeout(()=>controller.abort(), 8000);
   try{
-    const now = Date.now(), key = JSON.stringify(mine);
-    if(force || key !== STUDY.sentKey || now - STUDY.lastSend > 20000){
-      STUDY.lastSend = now; STUDY.sentKey = key;
-      fetch(`/api/session/${STUDY.id}`, {method:"POST", headers:{"content-type":"application/json"}, body:key})
-        .then(r => { STUDY.full = r.status === 409; }).catch(()=>{});
-    }
-    const r = await fetch(`/api/session/${STUDY.id}?uid=${encodeURIComponent(mine.uid)}`, {cache:"no-store"});
-    if(r.ok){ const d = await r.json(); STUDY.peers = d.peers || []; }
+    const r = await fetch(`/api/session/${sessionId}?uid=${encodeURIComponent(mine.uid)}`, {
+      cache:"no-store", signal:controller.signal
+    });
+    if(r.ok && sessionId === STUDY.id){ const d = await r.json(); STUDY.peers = d.peers || []; }
   }catch{}
-  finally{ STUDY.busy = false; studyBar(); refreshStudy(); }
+  finally{
+    clearTimeout(timeout); STUDY.polling = false;
+    if(sessionId === STUDY.id){ studyBar(); refreshStudy(); }
+  }
 }
 function studyBar(){
   let bar = $("#study");
@@ -1300,7 +1384,7 @@ function studyBar(){
     $(".top .wrap").append(bar); bar.addEventListener("click", studyBarClick);
   }
   const who = STUDY.peers.map(p => {
-    const vnum = p.pos ? p.pos.split(".").pop() : "";
+    const lastPart = p.pos ? p.pos.split(".").pop() : ""; const vnum = /^\\d+$/.test(lastPart) ? lastPart : "";
     const where = p.iso !== state.iso ? " · " + p.iso : (!settings.all && p.sec !== state.active ? " · " + sectionLabel(p.sec) : "");
     return `<b>${esc(peerName(p))}</b>` + (vnum ? ` · ${t("studyVerse")} ${esc(vnum)}` : "") + (p.w != null ? ` · ${t("studyWord")} ${p.w + 1}` : "") + esc(where);
   }).join(" · ");
@@ -1320,8 +1404,14 @@ function studyBarClick(e){
 }
 function refreshStudy(){
   document.querySelectorAll("#content .peer, #content .peer-w, #content .my-w").forEach(el=>el.classList.remove("peer","peer-w","my-w"));
-  document.querySelectorAll("#content .peer-tag").forEach(el=>el.remove());
-  if(!STUDY.id) return;
+  if(!STUDY.id){
+    document.querySelectorAll("#content .peer-tag").forEach(el=>el.remove());
+    return;
+  }
+  const activePeerIds = new Set(STUDY.peers.filter(p=>p.uid && p.iso===state.iso && p.pos).map(p=>p.uid));
+  document.querySelectorAll("#content .peer-tag").forEach(tag=>{
+    if(!activePeerIds.has(tag.dataset.uid)) tag.remove();
+  });
   const verses = [...document.querySelectorAll("#content .v[data-pos]")];
   if(STUDY.follow && STUDY.peers.length) followPeer(STUDY.peers[0], verses);
   const findVerse = (pos, sec) => verses.find(v => v.dataset.pos === pos && v.dataset.sec === sec);
@@ -1331,9 +1421,13 @@ function refreshStudy(){
   }
   for(const p of STUDY.peers){
     if(p.iso !== state.iso || !p.pos) continue;
-    const el = findVerse(p.pos, p.sec); if(!el) continue;
+    const el = findVerse(p.pos, p.sec);
+    let tag = [...document.querySelectorAll("#content .peer-tag")].find(item=>item.dataset.uid===p.uid);
+    if(!el){ if(tag) tag.remove(); continue; }
     el.classList.add("peer");
-    const tag = document.createElement("span"); tag.className = "peer-tag"; tag.textContent = peerName(p); el.prepend(tag);
+    if(!tag){ tag = document.createElement("span"); tag.className = "peer-tag"; tag.dataset.uid = p.uid; }
+    if(tag.parentElement !== el) el.prepend(tag);
+    if(tag.textContent !== peerName(p)) tag.textContent = peerName(p);
     if(p.w != null){ const w = el.querySelector(`.w[data-w="${p.w}"]`); if(w) w.classList.add("peer-w"); }
   }
   
@@ -1352,7 +1446,7 @@ function followPeer(p, verses){
   STUDY.autoScroll = true; clearTimeout(STUDY.autoTimer);
   const targetTop = readingLineY();
   const delta = anchor.getBoundingClientRect().top - targetTop;
-  window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: "auto"});
+  if(Math.abs(delta) >= 28) window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: "auto"});
   STUDY.autoTimer = setTimeout(()=>{ STUDY.autoScroll = false; }, 1200);
 }
 /* Use the same point just below the sticky header on each device. */
@@ -1361,25 +1455,43 @@ function readingLineY(){
   const bottom = header ? header.getBoundingClientRect().bottom : 0;
   return Math.max(0, Math.min(window.innerHeight - 80, bottom + 18));
 }
-/* Pick the word actually intersecting the reading line, with nearest-word fallback. */
-function wordAtReadingLine(verse, y){
-  const words = verse.querySelectorAll(".w[data-w]");
-  let nearest = null, distance = Infinity;
-  for(const word of words){
-    const r = word.getBoundingClientRect();
-    if(r.top <= y && r.bottom >= y) return Number(word.dataset.w);
-    const d = y < r.top ? r.top - y : y - r.bottom;
-    if(d < distance){ distance = d; nearest = word; }
+/* Select the first word at the visual start of the reading row, across wrapped verses. */
+function wordAtReadingLine(root, y){
+  const verses = root.querySelectorAll(".v[data-pos]");
+  let rowStart = null, nearestVerse = null, nearestVerseDistance = Infinity;
+  for(const verse of verses){
+    const vr = verse.getBoundingClientRect();
+    const verseDistance = y < vr.top ? vr.top - y : y > vr.bottom ? y - vr.bottom : 0;
+    if(verseDistance < nearestVerseDistance){ nearestVerseDistance = verseDistance; nearestVerse = verse; }
+    if(verseDistance !== 0) continue;
+    const rtl = getComputedStyle(verse).direction === "rtl";
+    for(const word of verse.querySelectorAll(".w[data-w]")){
+      const r = word.getBoundingClientRect();
+      if(y < r.top || y > r.bottom) continue;
+      const edge = rtl ? r.right : r.left;
+      if(!rowStart || (rtl ? edge > rowStart.edge : edge < rowStart.edge)) rowStart = {word, edge};
+    }
   }
-  return nearest ? Number(nearest.dataset.w) : null;
+  if(rowStart) return rowStart.word;
+  if(!nearestVerse) return null;
+  let nearest = null, nearestDistance = Infinity;
+  const rtl = getComputedStyle(nearestVerse).direction === "rtl";
+  for(const word of nearestVerse.querySelectorAll(".w[data-w]")){
+    const r = word.getBoundingClientRect();
+    const distance = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+    const edge = rtl ? r.right : r.left;
+    if(distance < nearestDistance || (distance === nearestDistance && nearest &&
+       (rtl ? edge > nearest.edge : edge < nearest.edge))) nearest = {word, edge};
+  }
+  return nearest ? nearest.word : null;
 }
 function trackMe(){
   if(!STUDY.id || STUDY.autoScroll) return;
-  const y = readingLineY();
-  let best = null;
-  for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= y) best = el; else break; }
-  if(!best) return;
-  const pos = best.dataset.pos, sec = best.dataset.sec, w = wordAtReadingLine(best, y);
+  const word = wordAtReadingLine($("#content"), readingLineY());
+  if(!word) return;
+  const verse = word.closest(".v[data-pos]");
+  if(!verse) return;
+  const pos = verse.dataset.pos, sec = verse.dataset.sec, w = Number(word.dataset.w);
   if(pos !== STUDY.me.pos || sec !== STUDY.me.sec || w !== STUDY.me.w){
     STUDY.me = {pos, sec, w};
     studyTick(false); refreshStudy();
