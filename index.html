@@ -1306,7 +1306,7 @@ function followPeer(p, verses){
   const anchor = word || el;
   STUDY.followKey = key;
   STUDY.autoScroll = true; clearTimeout(STUDY.autoTimer);
-  const targetTop = 180;
+  const targetTop = readingLineY();
   const delta = anchor.getBoundingClientRect().top - targetTop;
   window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: "auto"});
   STUDY.autoTimer = setTimeout(()=>{ STUDY.autoScroll = false; }, 1200);
