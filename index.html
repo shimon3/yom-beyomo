@@ -806,10 +806,10 @@ function wordsHTML(html){
    MyMemory is a third-party automatic translation service; failures are shown, never invented. */
 const frenchCache = new Map();
 async function translateFrench(hebrew){
-  const phrase=String(hebrew||"").replace(/\\s+/g," ").trim();
+  const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
   if(!phrase) return "";
   if(frenchCache.has(phrase)) return frenchCache.get(phrase);
-  const chunks=phrase.match(/[\\s\\S]{1,400}/g)||[];
+  const chunks=phrase.match(/[\s\S]{1,400}/g)||[];
   const translations=[];
   for(const chunk of chunks){
     const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(chunk)+"&langpair=he%7Cfr";
@@ -835,7 +835,7 @@ async function showTanyaFrench(secEl){
     const small=document.createElement("small");small.textContent="Traduction automatique · hébreu → français";div.append(small);
     const body=document.createElement("span");body.textContent="Traduction en cours…";div.append(body);
     paragraph.after(div);
-    try{body.textContent=await translateFrench(paragraph.textContent.replace(/^\\s*[א-ת׳״]+\\s*/,""));}
+    try{body.textContent=await translateFrench(paragraph.textContent.replace(/^\s*[א-ת׳״]+\s*/,""));}
     catch{body.textContent="Traduction temporairement indisponible.";}
   }
 }
