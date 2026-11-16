@@ -896,14 +896,18 @@ async function loadHayomYomHebrew(el, iso, my){
   const panels=[...el.querySelectorAll(".hy-translation-panel")];
   const frenchPanels=[...el.querySelectorAll(".hy-french-panel")];
   if(!panels.length && !frenchPanels.length)return;
-  // The user's API contains calendar metadata and verified original source links,
-  // not a French translation. Never present a source link as text received from the API.
-  const metadataPromise=fetch("https://hayom-yom-api.shmouel6.workers.dev/api/days/"+encodeURIComponent(iso),{
+  const api="https://hayom-yom-api.shmouel6.workers.dev";
+  const metadataPromise=fetch(api+"/api/days/"+encodeURIComponent(iso),{
     signal:AbortSignal.timeout(10000)
   }).then(async response=>response.ok?response.json():null).catch(()=>null);
+  const frenchPromise=fetch(api+"/api/translations/"+encodeURIComponent(iso)+"?lang=fr",{
+    signal:AbortSignal.timeout(10000)
+  }).then(async response=>({response,data:await response.json()})).catch(()=>null);
   let translation=null;
   try{
-    const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(iso));
+    const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(iso),{
+      signal:AbortSignal.timeout(12000)
+    });
     const data=await response.json();
     if(my!==state.token || !el.isConnected)return;
     if(response.ok && data.translation && data.language==="he")translation=data.translation;
@@ -926,24 +930,28 @@ async function loadHayomYomHebrew(el, iso, my){
     if(my!==state.token || !el.isConnected)return;
     panels.forEach(panel=>{panel.textContent="התרגום העברי אינו זמין כרגע.";});
   }
-  const metadata=await metadataPromise;
+  const [metadata,frenchResult]=await Promise.all([metadataPromise,frenchPromise]);
   if(my!==state.token || !el.isConnected)return;
-  let frenchText=null;
-  if(translation){
-    try{frenchText=await translateFrench(translation);}
-    catch{frenchText=null;}
-  }
-  if(my!==state.token || !el.isConnected)return;
+  const french=frenchResult?.data;
   for(const panel of frenchPanels){
     panel.replaceChildren();
     const heading=document.createElement("strong");heading.textContent="Traduction française";panel.append(heading);
-    const paragraph=document.createElement("p");
-    paragraph.textContent=frenchText||"Traduction automatique indisponible pour cette date.";
-    panel.append(paragraph);
-    if(frenchText){
-      const notice=document.createElement("small");
-      notice.textContent="Traduction automatique hébreu → français (MyMemory), à vérifier.";
-      panel.append(notice);
+    if(frenchResult?.response.ok && french?.date===iso && french.language==="fr" && typeof french.translation==="string" && french.translation.trim()){
+      const paragraph=document.createElement("p");paragraph.textContent=french.translation;panel.append(paragraph);
+      const attribution=document.createElement("small");
+      attribution.textContent=[french.source,french.license].filter(Boolean).join(" · ");
+      if(french.source_url && /^https:\/\//.test(french.source_url)){
+        attribution.append(document.createTextNode(attribution.textContent?" · ":""));
+        const link=document.createElement("a");link.href=french.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Source";
+        attribution.append(link);
+      }
+      if(attribution.textContent || attribution.querySelector("a"))panel.append(attribution);
+    }else{
+      const paragraph=document.createElement("p");
+      paragraph.textContent=frenchResult?.response.status===404
+        ? "Aucune traduction française enregistrée pour cette date."
+        : "La traduction française est temporairement indisponible.";
+      panel.append(paragraph);
     }
     const sourceUrl=metadata?.source_url;
     if(typeof sourceUrl==="string" && /^https:\/\/(?:www\.)?loubavitch\.fr\/etude\//.test(sourceUrl)){
