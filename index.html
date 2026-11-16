@@ -239,7 +239,6 @@ footer a{color:inherit}
 </div></div>
 
 <aside class="wrap links" id="links">
-  <a id="hayomLink" href="https://www.chabad.org/dailystudy/hayomyom.asp" target="_blank" rel="noopener"><b class="he">היום יום</b><span data-t="hayomSub"></span></a>
   <button type="button" id="fbOpen"><b data-t="fbCard"></b><span data-t="fbCardSub"></span></button>
 </aside>
 <footer><span data-t="footTexts"></span> <a href="https://www.sefaria.org" target="_blank" rel="noopener">Sefaria</a> · <span data-t="footDates"></span> <a href="https://www.hebcal.com" target="_blank" rel="noopener">Hebcal</a><br><span data-t="privacy"></span></footer>
@@ -1005,7 +1004,6 @@ async function setDate(iso, auto=false){
   $("#gdate").textContent = `${t("days")[weekday(iso)]} · ${d}.${m}.${y}`;
   $("#hdate").innerHTML = "&nbsp;";
   $("#badge").hidden = !auto;
-  $("#hayomLink").href = `https://www.chabad.org/dailystudy/hayomyom.asp?tdate=${m}/${d}/${y}`;
   render(); window.scrollTo({top:0});
   if(changed && STUDY.id) studyTick(true);
   try{ const h = await hebDate(iso); if(state.iso===iso){ state.hebrew = h.hebrew; $("#hdate").textContent = h.hebrew; } }
