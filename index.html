@@ -1224,7 +1224,7 @@ async function studyStart(btn){
 function studyOn(id, follow=false){
   STUDY.id = id; STUDY.name = settings.studyName || t("studyDef"); STUDY.follow = follow;
   STUDY.me = {pos:null, sec:null, w:null}; STUDY.peers = []; STUDY.sentKey = ""; STUDY.followKey = ""; STUDY.full = false;
-  if(!STUDY.timer) STUDY.timer = setInterval(()=>studyTick(false), 2000);
+  if(!STUDY.timer) STUDY.timer = setInterval(()=>studyTick(false), 500);
   syncUrl(); studyBar(); studyTick(true);
 }
 function studyOff(){
@@ -1238,7 +1238,7 @@ async function studyTick(force){
   STUDY.busy = true;
   try{
     const now = Date.now(), key = JSON.stringify(mine);
-    if(force || (key !== STUDY.sentKey && now - STUDY.lastSend > 800) || now - STUDY.lastSend > 20000){
+    if(force || key !== STUDY.sentKey || now - STUDY.lastSend > 20000){
       STUDY.lastSend = now; STUDY.sentKey = key;
       fetch(`/api/session/${STUDY.id}`, {method:"POST", headers:{"content-type":"application/json"}, body:key})
         .then(r => { STUDY.full = r.status === 409; }).catch(()=>{});
@@ -1306,33 +1306,42 @@ function followPeer(p, verses){
   const anchor = word || el;
   STUDY.followKey = key;
   STUDY.autoScroll = true; clearTimeout(STUDY.autoTimer);
-  const targetTop = 180;
+  const targetTop = readingLineY();
   const delta = anchor.getBoundingClientRect().top - targetTop;
-  window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: reducedMotion() ? "auto" : "smooth"});
+  window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: "auto"});
   STUDY.autoTimer = setTimeout(()=>{ STUDY.autoScroll = false; }, 1200);
 }
-/* Track the word crossing the reading line so different phone line-wraps stay aligned. */
-function wordAtReadingLine(verse){
+/* Use the same point just below the sticky header on each device. */
+function readingLineY(){
+  const header = document.querySelector(".top");
+  const bottom = header ? header.getBoundingClientRect().bottom : 0;
+  return Math.max(0, Math.min(window.innerHeight - 80, bottom + 18));
+}
+/* Pick the word actually intersecting the reading line, with nearest-word fallback. */
+function wordAtReadingLine(verse, y){
   const words = verse.querySelectorAll(".w[data-w]");
-  let last = null;
+  let nearest = null, distance = Infinity;
   for(const word of words){
-    if(word.getBoundingClientRect().bottom >= 180) return Number(word.dataset.w);
-    last = word;
+    const r = word.getBoundingClientRect();
+    if(r.top <= y && r.bottom >= y) return Number(word.dataset.w);
+    const d = y < r.top ? r.top - y : y - r.bottom;
+    if(d < distance){ distance = d; nearest = word; }
   }
-  return last ? Number(last.dataset.w) : null;
+  return nearest ? Number(nearest.dataset.w) : null;
 }
 function trackMe(){
   if(!STUDY.id || STUDY.autoScroll) return;
+  const y = readingLineY();
   let best = null;
-  for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= 180) best = el; else break; }
+  for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= y) best = el; else break; }
   if(!best) return;
-  const pos = best.dataset.pos, sec = best.dataset.sec, w = wordAtReadingLine(best);
+  const pos = best.dataset.pos, sec = best.dataset.sec, w = wordAtReadingLine(best, y);
   if(pos !== STUDY.me.pos || sec !== STUDY.me.sec || w !== STUDY.me.w){
     STUDY.me = {pos, sec, w};
     studyTick(false); refreshStudy();
   }
 }
-addEventListener("scroll", ()=>{ if(!STUDY.id) return; clearTimeout(STUDY.trackTimer); STUDY.trackTimer = setTimeout(trackMe, 250); }, {passive:true});
+addEventListener("scroll", ()=>{ if(!STUDY.id) return; clearTimeout(STUDY.trackTimer); STUDY.trackTimer = setTimeout(trackMe, 60); }, {passive:true});
 $("#content").addEventListener("keydown", e=>{
   if((e.key==="Enter"||e.key===" ") && e.target.classList && e.target.classList.contains("w")){ e.preventDefault(); e.target.click(); }
 });
