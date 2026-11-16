@@ -809,7 +809,13 @@ async function translateFrench(hebrew){
   const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
   if(!phrase) return "";
   if(frenchCache.has(phrase)) return frenchCache.get(phrase);
-  const chunks=phrase.match(/[\s\S]{1,400}/g)||[];
+  const chunks=[]; let piece=""; const byteLen=x=>new TextEncoder().encode(x).length;
+  for(const word of phrase.split(/(\s+)/)){
+    if(byteLen(word)>450){ if(piece){chunks.push(piece);piece="";} for(const char of word){if(byteLen(piece+char)>450){chunks.push(piece);piece="";}piece+=char;} }
+    else if(byteLen(piece+word)>450){if(piece)chunks.push(piece);piece=word;}
+    else piece+=word;
+  }
+  if(piece)chunks.push(piece);
   const translations=[];
   for(const chunk of chunks){
     const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(chunk)+"&langpair=he%7Cfr";
