@@ -17,8 +17,14 @@ let ready = false;
 async function init(db) {
   if (ready) return;
   await db.prepare(
-    "CREATE TABLE IF NOT EXISTS study_presence (session TEXT NOT NULL, uid TEXT NOT NULL, name TEXT, iso TEXT, sec TEXT, pos TEXT, w INTEGER, updated INTEGER NOT NULL, PRIMARY KEY (session, uid))"
+    "CREATE TABLE IF NOT EXISTS study_presence (session TEXT NOT NULL, uid TEXT NOT NULL, name TEXT, iso TEXT, sec TEXT, pos TEXT, w INTEGER, updated INTEGER NOT NULL, seq INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (session, uid))"
   ).run();
+  // Upgrade installations created before sequence numbers were added.
+  try {
+    await db.prepare("ALTER TABLE study_presence ADD COLUMN seq INTEGER NOT NULL DEFAULT 0").run();
+  } catch (error) {
+    if (!/duplicate column/i.test(String(error && error.message || error))) throw error;
+  }
   ready = true;
 }
 async function readBody(request, max = 1000) {
@@ -39,7 +45,7 @@ export async function onRequestGet({ params, request, env }) {
     "SELECT uid, name, iso, sec, pos, w, updated FROM study_presence WHERE session = ?1 AND updated > ?2 ORDER BY updated DESC LIMIT 8"
   ).bind(sid, Date.now() - FRESH).all()).results || [];
   const peers = rows.filter(r => r.uid !== me).slice(0, MAX_PEERS)
-    .map(r => ({ name: r.name, iso: r.iso, sec: r.sec, pos: r.pos, w: r.w, updated: r.updated }));
+    .map(r => ({ uid: r.uid, name: r.name, iso: r.iso, sec: r.sec, pos: r.pos, w: r.w, updated: r.updated }));
   return json({ peers });
 }
 
@@ -56,6 +62,7 @@ export async function onRequestPost({ params, request, env }) {
   const pos = typeof b.pos === "string" && POS.test(b.pos) ? b.pos : null;
   const w = Number.isInteger(b.w) && b.w >= 0 && b.w < 5000 ? b.w : null;
   const name = typeof b.name === "string" ? b.name.trim().slice(0, 20) : "";
+  const seq = Number.isSafeInteger(b.seq) && b.seq >= 0 ? b.seq : 0;
   const now = Date.now();
 
   // Refuse a fifth device: count other fresh participants first.
@@ -65,9 +72,10 @@ export async function onRequestPost({ params, request, env }) {
   if (others && others.n >= MAX_PEERS + 1) return json({ ok: false, error: "full" }, 409);
 
   await env.DB.prepare(
-    "INSERT INTO study_presence (session, uid, name, iso, sec, pos, w, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) " +
-    "ON CONFLICT (session, uid) DO UPDATE SET name = excluded.name, iso = excluded.iso, sec = excluded.sec, pos = excluded.pos, w = excluded.w, updated = excluded.updated"
-  ).bind(sid, b.uid, name, iso, sec, pos, w, now).run();
+    "INSERT INTO study_presence (session, uid, name, iso, sec, pos, w, updated, seq) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) " +
+    "ON CONFLICT (session, uid) DO UPDATE SET name = excluded.name, iso = excluded.iso, sec = excluded.sec, pos = excluded.pos, w = excluded.w, updated = excluded.updated, seq = excluded.seq " +
+    "WHERE excluded.seq >= study_presence.seq"
+  ).bind(sid, b.uid, name, iso, sec, pos, w, now, seq).run();
 
   // Occasional cleanup of old rows, to keep the table small.
   if (Math.random() < 0.02) {
