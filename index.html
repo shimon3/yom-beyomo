@@ -977,7 +977,7 @@ $("#chips").addEventListener("click", e=>{
   if(settings.all){ const el = $("#s-"+b.dataset.id); if(el) el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); renderChips(); }
   else { render(); window.scrollTo({top:0}); }
 });
-$("#content").addEventListener("click", e=>{
+$("#content").addEventListener("click", async e=>{
   const b = e.target.closest("button"); if(!b) return;
 
   if(b.dataset.hyTranslate){
