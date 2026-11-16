@@ -3,6 +3,10 @@ name = "yom-beyomo"
 pages_build_output_dir = "."
 compatibility_date = "2026-09-01"
 
+# Workers AI for paragraph explanations on this preview branch
+[ai]
+binding = "AI"
+
 # Anonymous usage counts + user feedback
 [[d1_databases]]
 binding = "DB"
