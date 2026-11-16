@@ -1049,7 +1049,7 @@ addEventListener("online", ()=>{
   setStatus(); render();
   if(STUDY.id){ clearTimeout(STUDY.retryTimer); STUDY.retryTimer = null; STUDY.sentKey = ""; studyTick(true); }
 });
-addEventListener("visibilitychange", ()=>{
+document.addEventListener("visibilitychange", ()=>{
   if(STUDY.id && document.visibilityState === "visible") studyTick(true);
 });
 addEventListener("offline", setStatus);
@@ -1412,34 +1412,46 @@ function readingLineY(){
   return Math.max(0, Math.min(window.innerHeight - 80, bottom + 18));
 }
 /* Pick the word actually intersecting the reading line, with nearest-word fallback. */
-function wordAtReadingLine(verse, y){
-  const words = verse.querySelectorAll(".w[data-w]");
-  const rtl = getComputedStyle(verse).direction === "rtl";
-  let rowStart = null, nearest = null, nearestVertical = Infinity;
-  for(const word of words){
-    const r = word.getBoundingClientRect();
-    const dy = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
-    if(dy === 0){
-      if(!rowStart || (rtl ? r.right > rowStart.edge : r.left < rowStart.edge)){
-        rowStart = {word, edge:rtl ? r.right : r.left};
+function wordAtReadingLine(root, y){
+  const verses = root.querySelectorAll(".v[data-pos]");
+  let rowStart = null, nearestVerse = null, nearestVerseDistance = Infinity;
+  for(const verse of verses){
+    const vr = verse.getBoundingClientRect();
+    const verseDistance = y < vr.top ? vr.top - y : y > vr.bottom ? y - vr.bottom : 0;
+    if(verseDistance < nearestVerseDistance){ nearestVerseDistance = verseDistance; nearestVerse = verse; }
+    if(verseDistance !== 0) continue;
+    const rtl = getComputedStyle(verse).direction === "rtl";
+    for(const word of verse.querySelectorAll(".w[data-w]")){
+      const r = word.getBoundingClientRect();
+      if(y < r.top || y > r.bottom) continue;
+      const edge = rtl ? r.right : r.left;
+      if(!rowStart || (rtl ? edge > rowStart.edge : edge < rowStart.edge)){
+        rowStart = {word, edge};
       }
-    }else if(dy < nearestVertical){
-      nearestVertical = dy; nearest = word;
-    }else if(dy === nearestVertical && nearest){
-      const nr = nearest.getBoundingClientRect();
-      if(rtl ? r.right > nr.right : r.left < nr.left) nearest = word;
     }
   }
-  const chosen = rowStart ? rowStart.word : nearest;
-  return chosen ? Number(chosen.dataset.w) : null;
+  if(rowStart) return rowStart.word;
+  if(!nearestVerse) return null;
+  let nearest = null, nearestDistance = Infinity;
+  const rtl = getComputedStyle(nearestVerse).direction === "rtl";
+  for(const word of nearestVerse.querySelectorAll(".w[data-w]")){
+    const r = word.getBoundingClientRect();
+    const distance = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+    const edge = rtl ? r.right : r.left;
+    if(distance < nearestDistance || (distance === nearestDistance && nearest &&
+       (rtl ? edge > nearest.edge : edge < nearest.edge))){
+      nearestDistance = distance; nearest = {word, edge};
+    }
+  }
+  return nearest ? nearest.word : null;
 }
 function trackMe(){
   if(!STUDY.id || STUDY.autoScroll) return;
-  const y = readingLineY();
-  let best = null;
-  for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= y) best = el; else break; }
-  if(!best) return;
-  const pos = best.dataset.pos, sec = best.dataset.sec, w = wordAtReadingLine(best, y);
+  const word = wordAtReadingLine($("#content"), readingLineY());
+  if(!word) return;
+  const verse = word.closest(".v[data-pos]");
+  if(!verse) return;
+  const pos = verse.dataset.pos, sec = verse.dataset.sec, w = Number(word.dataset.w);
   if(pos !== STUDY.me.pos || sec !== STUDY.me.sec || w !== STUDY.me.w){
     STUDY.me = {pos, sec, w};
     studyTick(false); refreshStudy();
