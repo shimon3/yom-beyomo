@@ -1259,7 +1259,7 @@ function queueStudySend(mine, force=false){
   if(!STUDY.id || !mine.sec) return;
   const key = presenceKey(mine), now = Date.now();
   if(!force && STUDY.full && now - STUDY.lastSend <= 20000) return;
-  if(!force && key === STUDY.sentKey && now - STUDY.lastSend <= 20000) return;
+  if(!force && key === STUDY.sentKey && now - STUDY.lastSend <= 10000) return;
   STUDY.pending = {...mine, seq:nextStudySeq()};
   if(STUDY.sending || STUDY.retryTimer) return;
   flushStudySend();
