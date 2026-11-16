@@ -1302,19 +1302,35 @@ function followPeer(p, verses){
   if(key === STUDY.followKey) return;
   const el = verses.find(v => v.dataset.pos === p.pos && v.dataset.sec === p.sec);
   if(!el) return;
+  const word = p.w != null ? el.querySelector(`.w[data-w="${p.w}"]`) : null;
+  const anchor = word || el;
   STUDY.followKey = key;
   STUDY.autoScroll = true; clearTimeout(STUDY.autoTimer);
-  el.scrollIntoView({behavior: reducedMotion() ? "auto" : "smooth", block: "center"});
+  const targetTop = 180;
+  const delta = anchor.getBoundingClientRect().top - targetTop;
+  window.scrollTo({top: Math.max(0, window.scrollY + delta), behavior: reducedMotion() ? "auto" : "smooth"});
   STUDY.autoTimer = setTimeout(()=>{ STUDY.autoScroll = false; }, 1200);
 }
-/* My own position follows my reading: the verse at the top of the screen, or the word I tapped. */
+/* Track the word crossing the reading line so different phone line-wraps stay aligned. */
+function wordAtReadingLine(verse){
+  const words = verse.querySelectorAll(".w[data-w]");
+  let last = null;
+  for(const word of words){
+    if(word.getBoundingClientRect().bottom >= 180) return Number(word.dataset.w);
+    last = word;
+  }
+  return last ? Number(last.dataset.w) : null;
+}
 function trackMe(){
   if(!STUDY.id || STUDY.autoScroll) return;
   let best = null;
   for(const el of document.querySelectorAll("#content .v[data-pos]")){ if(el.getBoundingClientRect().top <= 180) best = el; else break; }
   if(!best) return;
-  const pos = best.dataset.pos, sec = best.dataset.sec;
-  if(pos !== STUDY.me.pos || sec !== STUDY.me.sec){ STUDY.me = {pos, sec, w:null}; studyTick(false); refreshStudy(); }
+  const pos = best.dataset.pos, sec = best.dataset.sec, w = wordAtReadingLine(best);
+  if(pos !== STUDY.me.pos || sec !== STUDY.me.sec || w !== STUDY.me.w){
+    STUDY.me = {pos, sec, w};
+    studyTick(false); refreshStudy();
+  }
 }
 addEventListener("scroll", ()=>{ if(!STUDY.id) return; clearTimeout(STUDY.trackTimer); STUDY.trackTimer = setTimeout(trackMe, 250); }, {passive:true});
 $("#content").addEventListener("keydown", e=>{
