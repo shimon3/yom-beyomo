@@ -186,6 +186,10 @@ footer a{color:inherit}
 .tanya-fr{direction:ltr;text-align:left;font-family:var(--f-ui);font-size:.96rem;line-height:1.7;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:0 0 18px;color:var(--ink)}
 .tanya-fr small{display:block;font-size:.76rem;color:var(--muted);margin-bottom:4px}
 .tanya-word-tip{direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0 12px}
+.paragraph-tools{display:flex;gap:8px;flex-wrap:wrap;margin:-.2em 0 1em;font-family:var(--f-ui)}
+.paragraph-tools .tool[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.paragraph-result{direction:auto;unicode-bidi:plaintext;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:-.4em 0 1.1em;white-space:pre-wrap;line-height:1.7}
+.paragraph-result[hidden]{display:none}
 
 /* Source-backed Hebrew translation for Hayom Yom */
 .hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
@@ -852,31 +856,31 @@ async function showTanyaFrench(secEl){
     catch{body.textContent="Traduction temporairement indisponible.";}
   }
 }
-function tanyaControls(){
-  return '<div class="tanya-translation-tools" dir="auto"><button class="tool" data-tanya-french="1" aria-pressed="'+settings.tanyaFrench+'">'+(settings.tanyaFrench?'✓ Masquer la traduction française':'Afficher la traduction française')+'</button><small>Traduction automatique externe, à vérifier.</small></div>';
+function paragraphTools(){
+  return '<div class="paragraph-tools" dir="ltr"><button class="tool" type="button" data-paragraph-action="translate" aria-pressed="false">Traduction française</button><button class="tool" type="button" data-paragraph-action="explain" aria-pressed="false">Explication</button></div><div class="paragraph-result" role="status" hidden></div>';
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
     return (data.readings||[]).map(r=>{
       const source=r.url ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 0">'+(settings.lang==="fr"?"Source officielle ↗":"מקור הטקסט ↗")+'</a>' : "";
       const body=(r.paragraphs||[]).length
-        ? r.paragraphs.map(p=>'<p class="v" dir="rtl">'+esc(p)+'</p>').join("")
+        ? r.paragraphs.map(p=>'<div class="paragraph-card" dir="auto"><p class="v" dir="rtl">'+esc(p)+'</p>'+paragraphTools()+'</div>').join("")
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
-      const translation='<div class="hy-translation-panel" dir="rtl" lang="he" role="status"><strong>תרגום לעברית</strong><p>טוען תרגום ממקור קיים…</p></div>';
-      return '<div dir="rtl" lang="he">'+body+'</div>'+translation+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
+      return '<div dir="rtl" lang="he">'+body+'</div>'+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
     }).join("");
   }
 
   if(!data.groups.length && data.link)
     return `<div class="msg">${esc(t("smOther"))} <span class="he">${esc(data.note||"")}</span><br><a href="${data.link}" target="_blank" rel="noopener">${esc(t("smLink"))}</a></div>`;
   const strip = s => settings.nikud ? s : s.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,"");
-  return (sec.id==="tanya" ? tanyaControls() : "") + data.groups.map(g=>`<h2>${esc(g.title)}</h2>` + (sec.flow ? "<p>" : "") +
+  return data.groups.map(g=>`<h2>${esc(g.title)}</h2>` + (sec.flow ? "<p>" : "") +
     g.rows.map(r=>{
       const tag = sec.flow ? "span" : "p";
       const num = g.rows.length>1 || sec.id!=="seferhamitzvot" ? `<span class="vn">${gem(r.v)}</span>` : "";
       const pos = `${cKey(r.c)}.${r.v}`;
       let h = `<${tag} class="v" data-sec="${esc(sec.id)}" data-pos="${esc(pos)}">${num}${wordsHTML(strip(clean(r.raw)))}</${tag}>`;
+      if(sec.id==="tanya") h = '<div class="paragraph-card" dir="auto">'+h+paragraphTools()+'</div>';
       if(sec.id==="chumash" && settings.rashi && r.rashi && r.rashi.length) h += `<div class="rashi"><span class="lbl">רש״י</span>${strip(r.rashi.join(" "))}</div>`;
       return h;
     }).join("") + (sec.flow ? "</p>" : "")).join("") +
@@ -917,8 +921,7 @@ async function fill(el, sec, iso, my){
     const sub = el.querySelector(".sub"); sub.textContent = data.sub; sub.dir = "auto";
     el.querySelector(".text").innerHTML = textHTML(sec, data);
     refreshStudy();
-    if(sec.id==="tanya" && settings.tanyaFrench) showTanyaFrench(el);
-    if(sec.id==="hayomyom") loadHayomYomHebrew(el,iso,my);
+    /* Hayom Yom text is already supplied in Hebrew; do not request a missing duplicate translation. */
   }catch(e){
     if(my!==state.token) return;
     el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
@@ -1017,16 +1020,32 @@ $("#content").addEventListener("click", async e=>{
 });
 
 $("#content").addEventListener("click", async e=>{
-  const toggle=e.target.closest("button[data-tanya-french]");
-  if(toggle){
-    settings.tanyaFrench=!settings.tanyaFrench;saveSettings();
-    const sec=toggle.closest(".sec");
-    toggle.setAttribute("aria-pressed",String(settings.tanyaFrench));
-    toggle.textContent=settings.tanyaFrench?"✓ Masquer la traduction française":"Afficher la traduction française";
-    if(settings.tanyaFrench) showTanyaFrench(sec);
-    else sec.querySelectorAll(".tanya-fr,.tanya-word-tip").forEach(x=>x.remove());
+  const assist=e.target.closest("button[data-paragraph-action]");
+  if(assist){
+    const card=assist.closest(".paragraph-card");
+    const paragraph=card?.querySelector(".v");
+    const panel=card?.querySelector(".paragraph-result");
+    if(!paragraph || !panel)return;
+    const action=assist.dataset.paragraphAction;
+    if(panel.dataset.action===action && !panel.hidden){panel.hidden=true;assist.setAttribute("aria-pressed","false");return;}
+    card.querySelectorAll("button[data-paragraph-action]").forEach(button=>button.setAttribute("aria-pressed",String(button===assist)));
+    panel.hidden=false;panel.dataset.action=action;panel.textContent=action==="translate"?"Traduction en français…":"Préparation de l’explication…";
+    const original=paragraph.textContent.replace(/^\\s*[א-ת׳״]+\\s*/,"").trim();
+    try{
+      if(action==="translate") panel.textContent=await translateFrench(original);
+      else{
+        const response=await fetch("/api/paragraph-explanation",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:original})});
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.error==="ai-binding-required"?"Explication non activée sur cette prévisualisation.":"Explication indisponible pour le moment.");
+        panel.textContent=data.explanation||"Explication indisponible pour le moment.";
+      }
+    }catch(error){
+      panel.textContent=action==="translate"?"Traduction temporairement indisponible. Réessaie dans quelques instants.":(error.message||"Explication indisponible pour le moment.");
+    }
     return;
   }
+  const toggle=e.target.closest("button[data-tanya-french]");
+  if(toggle)return;
   const word=e.target.closest(".w");
   if(!word || !word.closest("#s-tanya")) return;
   const parent=word.closest(".v");
