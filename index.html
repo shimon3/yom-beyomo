@@ -195,6 +195,8 @@ footer a{color:inherit}
 .hy-french-panel p{margin:6px 0 10px}
 .hy-french-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
 .hy-french-panel a{overflow-wrap:anywhere}
+.hy-study-meta{direction:ltr;text-align:left;border-bottom:1px solid var(--line);margin:0 0 12px;padding:0 0 8px;font:400 .9rem/1.6 var(--f-ui)}
+.hy-study-meta p{margin:3px 0}
 .hy-translation-panel p{margin:6px 0 10px}
 .hy-translation-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
 </style>
@@ -922,8 +924,10 @@ async function loadHayomYomHebrew(el, iso, my){
           credit.append(link);
         }
         panel.append(credit);
+      }else if(data.error==="translation-not-found"){
+        panel.remove();
       }else{
-        panel.textContent=data.error==="translation-not-found" ? "לא נמצא תרגום עברי קיים ליום זה." : "התרגום העברי אינו זמין כרגע.";
+        panel.textContent="התרגום העברי אינו זמין כרגע.";
       }
     }
   }catch{
@@ -932,33 +936,35 @@ async function loadHayomYomHebrew(el, iso, my){
   }
   const [metadata,frenchResult]=await Promise.all([metadataPromise,frenchPromise]);
   if(my!==state.token || !el.isConnected)return;
+  const content=el.querySelector(".text");
+  const oldSchedule=content?.querySelector(".hy-study-meta");
+  if(oldSchedule)oldSchedule.remove();
+  if(content && (metadata?.houmach || metadata?.tanya)){
+    const schedule=document.createElement("div");
+    schedule.className="hy-study-meta";schedule.dir="ltr";schedule.lang="fr";
+    for(const [label,value] of [["Houmach",metadata.houmach],["Tanya",metadata.tanya]]){
+      if(typeof value==="string" && value.trim()){
+        const line=document.createElement("p");
+        const heading=document.createElement("strong");heading.textContent=label+" :";
+        line.append(heading,document.createTextNode(" "+value.trim()));
+        schedule.append(line);
+      }
+    }
+    if(schedule.childElementCount)content.prepend(schedule);
+  }
   const french=frenchResult?.data;
   for(const panel of frenchPanels){
     panel.replaceChildren();
     const heading=document.createElement("strong");heading.textContent="Traduction française";panel.append(heading);
     if(frenchResult?.response.ok && french?.date===iso && french.language==="fr" && typeof french.translation==="string" && french.translation.trim()){
       const paragraph=document.createElement("p");paragraph.textContent=french.translation;panel.append(paragraph);
-      const attribution=document.createElement("small");
-      attribution.textContent=[french.source,french.license].filter(Boolean).join(" · ");
-      if(french.source_url && /^https:\/\//.test(french.source_url)){
-        attribution.append(document.createTextNode(attribution.textContent?" · ":""));
-        const link=document.createElement("a");link.href=french.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Source";
-        attribution.append(link);
-      }
-      if(attribution.textContent || attribution.querySelector("a"))panel.append(attribution);
+
     }else{
       const paragraph=document.createElement("p");
       paragraph.textContent=frenchResult?.response.status===404
         ? "Aucune traduction française enregistrée pour cette date."
         : "La traduction française est temporairement indisponible.";
       panel.append(paragraph);
-    }
-    const sourceUrl=metadata?.source_url;
-    if(typeof sourceUrl==="string" && /^https:\/\/(?:www\.)?loubavitch\.fr\/etude\//.test(sourceUrl)){
-      const line=document.createElement("p");
-      const link=document.createElement("a");link.href=sourceUrl;link.target="_blank";link.rel="noopener noreferrer";
-      link.textContent="Lire la version française sur Loubavitch.fr";
-      line.append(link);panel.append(line);
     }
   }
 }
