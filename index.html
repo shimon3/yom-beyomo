@@ -901,7 +901,7 @@ async function loadHayomYomHebrew(el, iso, my){
     signal:AbortSignal.timeout(10000)
   }).then(async response=>response.ok?response.json():null).catch(()=>null);
   const frenchPromise=fetch(api+"/api/translations/"+encodeURIComponent(iso)+"?lang=fr",{
-    signal:AbortSignal.timeout(10000)
+    cache:"no-store", signal:AbortSignal.timeout(10000)
   }).then(async response=>({response,data:await response.json()})).catch(()=>null);
   let translation=null;
   try{
