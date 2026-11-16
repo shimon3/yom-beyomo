@@ -1029,15 +1029,26 @@ $("#content").addEventListener("click", async e=>{
     const action=assist.dataset.paragraphAction;
     if(panel.dataset.action===action && !panel.hidden){panel.hidden=true;assist.setAttribute("aria-pressed","false");return;}
     card.querySelectorAll("button[data-paragraph-action]").forEach(button=>button.setAttribute("aria-pressed",String(button===assist)));
-    panel.hidden=false;panel.dataset.action=action;panel.textContent=action==="translate"?"Traduction en français…":"Préparation de l’explication…";
+    panel.hidden=false;panel.dataset.action=action;panel.textContent=action==="translate"?"Traduction en français…":"Recherche d’une explication publiée…";
     const original=paragraph.textContent.replace(/^\\s*[א-ת׳״]+\\s*/,"").trim();
     try{
       if(action==="translate") panel.textContent=await translateFrench(original);
       else{
-        const response=await fetch("/api/paragraph-explanation",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:original})});
-        const data=await response.json();
-        if(!response.ok) throw new Error(data.error==="ai-binding-required"?"Explication non activée sur cette prévisualisation.":"Explication indisponible pour le moment.");
-        panel.textContent=data.explanation||"Explication indisponible pour le moment.";
+        const sectionId=card.closest(".sec")?.dataset.id;
+        const parts=String(state.iso||"").split("-");
+        if(parts.length!==3 || !["tanya","hayomyom"].includes(sectionId)) throw new Error("Source indisponible pour ce paragraphe.");
+        const [year,month,day]=parts;
+        const page=sectionId==="tanya"?"tanya.asp":"hayomyom.asp";
+        const url=new URL("https://fr.chabad.org/dailystudy/"+page);
+        url.searchParams.set("tdate",Number(month)+"/"+Number(day)+"/"+year);
+        const message=document.createElement("p");
+        message.textContent=sectionId==="tanya"
+          ?"Ouvre l’étude quotidienne publiée par Chabad.org pour cette date. Le contenu du Tanya peut être en hébreu."
+          :"Ouvre le Hayom Yom publié en français par Chabad.org pour cette date, avec ses notes.";
+        const link=document.createElement("a");
+        link.href=url.href;link.target="_blank";link.rel="noopener noreferrer";
+        link.textContent="Consulter la source publiée ↗";
+        panel.replaceChildren(message,link);
       }
     }catch(error){
       panel.textContent=action==="translate"?"Traduction temporairement indisponible. Réessaie dans quelques instants.":(error.message||"Explication indisponible pour le moment.");
