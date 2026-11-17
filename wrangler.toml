@@ -8,3 +8,6 @@ compatibility_date = "2026-09-01"
 binding = "DB"
 database_name = "yom-beyomo"
 database_id = "99b46c17-4715-4e11-a296-1feceb15317d"
+
+[ai]
+binding = "AI"
