@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /api/
+Disallow: /stats
+Disallow: /dvar-malkhout
+Sitemap: https://yombeyomo.com/sitemap.xml

@@ -10,12 +10,13 @@
 <meta property="og:site_name" content="יום ביומו">
 <meta property="og:title" content="יום ביומו — חת״ת ושיעורים יומיים">
 <meta property="og:description" content="חומש עם רש״י, תהילים, תניא, רמב״ם, משנה ודף יומי — כל יום, בדף אחד">
-<meta property="og:url" content="https://yom-beyomo.pages.dev/">
-<meta property="og:image" content="https://yom-beyomo.pages.dev/og.png">
+<meta property="og:url" content="https://yombeyomo.com/">
+<meta property="og:image" content="https://yombeyomo.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="he_IL">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://yombeyomo.com/">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -215,7 +216,14 @@ footer a{color:inherit}
 .french-card-content{border-top:1px solid var(--translation-border)}
 .french-card-body{padding:8px 0 12px;white-space:pre-line;overflow-wrap:anywhere}
 .french-card-body[aria-busy="true"],.french-card-body[data-state="error"]{color:var(--translation-muted)}
+.tanya-word-selected,.tanya-word-source{background:#fce5e7;color:#891c29;border-radius:3px;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+:root[data-theme="dark"] :is(.tanya-word-selected,.tanya-word-source){background:#513039;color:#ffd5da}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) :is(.tanya-word-selected,.tanya-word-source){background:#513039;color:#ffd5da}}
 .tanya-word-tip{display:block;width:fit-content;max-width:min(100%,78ch);direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0 12px;overflow-wrap:anywhere}
+.french-passage-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 0 12px;font-size:.9rem}
+.french-passage-tools label,.french-passage-tools p{width:100%;margin:0}
+.french-passage-tools select{min-width:0;max-width:100%;padding:4px}
+.french-card-body p{margin:.4em 0}
 .french-card-retry{margin:0 0 12px;min-height:44px;font:600 .875rem/1.2 var(--f-ui)}
 
 
@@ -340,8 +348,10 @@ footer a{color:inherit}
     </div>
     <div class="field">
       <span class="lab" data-t="offlineLabel"></span>
-      <div class="offline"><button type="button" class="tool" id="prefetchBtn" data-t="prefetchBtn"></button><span class="hint" id="prefetchMsg" data-t="prefetchHint"></span></div>
+      <div class="offline"><button type="button" class="tool" id="prefetchBtn" data-t="prefetchBtn"></button><span class="hint" id="prefetchMsg" data-t="prefetchHint" role="status"></span></div>
     </div>
+    <label class="sw"><input type="checkbox" id="offlineFrench"> <span data-t="offlineFrench"></span></label>
+    <div class="hint" data-t="offlineFrenchHint"></div>
     <div class="hint" data-t="savedHint"></div>
     <div class="dlg-foot"><button class="primary" value="ok" data-t="save"></button><button value="cancel" class="tool" data-t="cancel"></button></div>
   </form>
@@ -351,7 +361,7 @@ footer a{color:inherit}
 "use strict";
 const SEF = "https://www.sefaria.org/api";
 const HEB = "https://www.hebcal.com";
-const SITE = "https://yom-beyomo.pages.dev/";
+const SITE = "https://yombeyomo.com/";
 
 const CITIES = [
   {id:"jlm", he:"ירושלים", fr:"Jérusalem", lat:31.778, lon:35.235, tz:"Asia/Jerusalem", il:true},
@@ -388,7 +398,7 @@ const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
-    all:"הכול בדף אחד", tools:"כלים", imgBtn:"תמונה לשיתוף", imgTitle:"יום ביומו — לימוד היום", imgSite:"yom-beyomo.pages.dev", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyStopFollow:"הפסק לעקוב", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
+    all:"הכול בדף אחד", tools:"כלים", imgBtn:"תמונה לשיתוף", imgTitle:"יום ביומו — לימוד היום", imgSite:"yombeyomo.com", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyStopFollow:"הפסק לעקוב", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
     retry:"לנסות שוב", source:"מקור", errOffline:"אין חיבור לאינטרנט, והשיעור הזה לא נשמר מראש.",
     errDown:"ספריא (מקור הטקסטים) לא מגיב כרגע. נסו שוב בעוד כמה דקות.", errHebcal:"Hebcal (התאריכים) לא מגיב כרגע.",
@@ -397,10 +407,12 @@ const T = {
     errNoParasha:"לא נמצאה פרשת השבוע", errNoTanya:"לא נמצא שיעור התניא היומי", errNoRambam:"לא נמצא שיעור הרמב״ם",
     errNoMishna:"לא נמצאה המשנה היומית", errNoDaf:"לא נמצא הדף היומי", errNoSM:"לא נמצא שיעור ספר המצוות",
     smOther:"השיעור של היום (הקדמה) זמין באתר Chabad.org:", smLink:"לשיעור ספר המצוות ↗",
+    hayomOriginalUnavailable:"הטקסט המקורי אינו זמין. אפשר לבדוק אם קיים תרגום לצרפתית.",
     hayomSub:"לשיעור של היום באתר Chabad.org ↗", dmSub:"החוברת השבועית באתר הרשמי (לשימוש אישי) ↗",
     footTexts:"טקסטים:", footDates:"תאריכים וזמנים:",
     language:"שפה", goDate:"מעבר לתאריך", cityLabel:"מיקום (לשקיעה ולפרשה בארץ/בחו״ל)",
     afterSunset:"אחרי השקיעה — להציג את הלימוד של מחר", sectionsLabel:"שיעורים מוצגים",
+    offlineFrench:"לשמור גם תרגומים לצרפתית", offlineFrenchHint:"היום יום: תרגומים זמינים. תניא: תרגומים שכבר פתחתם במכשיר הזה.", offlineFrenchDone:(hy,ta)=>`תרגומים שנשמרו: היום יום ${hy} ימים · תניא ${ta} קטעים שכבר תורגמו.`,
     offlineLabel:"לימוד ללא אינטרנט", prefetchBtn:"שמירת 7 הימים הבאים", prefetchHint:"מתאים לשבת ולחג",
     savedHint:"ההתקדמות וההגדרות נשמרות בדפדפן זה בלבד.", save:"שמירה", cancel:"ביטול",
     abroad:" (חו״ל)", progress:(ok,tot)=>`נשמרו ${ok} מתוך ${tot}…`,
@@ -427,7 +439,7 @@ const T = {
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
-    all:"Tout sur une page", tools:"Outils", imgBtn:"Image à partager", imgTitle:"Étude du jour · יום ביומו", imgSite:"yom-beyomo.pages.dev", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyStopFollow:"Arrêter de suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
+    all:"Tout sur une page", tools:"Outils", imgBtn:"Image à partager", imgTitle:"Étude du jour · יום ביומו", imgSite:"yombeyomo.com", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyStopFollow:"Arrêter de suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
     retry:"Réessayer", source:"Source", errOffline:"Pas de connexion internet, et cette étude n'a pas été enregistrée à l'avance.",
     errDown:"Sefaria (la source des textes) ne répond pas pour le moment. Réessayez dans quelques minutes.", errHebcal:"Hebcal (le calendrier) ne répond pas pour le moment.",
@@ -436,10 +448,12 @@ const T = {
     errNoParasha:"Paracha de la semaine introuvable", errNoTanya:"Tanya du jour introuvable", errNoRambam:"Rambam du jour introuvable",
     errNoMishna:"Michna du jour introuvable", errNoDaf:"Daf du jour introuvable", errNoSM:"Sefer HaMitsvot du jour introuvable",
     smOther:"L'étude du jour (introduction) est disponible sur Chabad.org :", smLink:"Ouvrir le Sefer HaMitsvot du jour ↗",
+    hayomOriginalUnavailable:"Le texte original est indisponible. Tu peux consulter le français s’il est disponible.",
     hayomSub:"L'étude du jour sur Chabad.org ↗", dmSub:"La brochure de la semaine sur le site officiel (usage personnel) ↗",
     footTexts:"Textes :", footDates:"Dates et horaires :",
     language:"Langue", goDate:"Aller à la date", cityLabel:"Ville (coucher du soleil, Israël ou diaspora)",
     afterSunset:"Après le coucher du soleil, afficher l'étude du lendemain", sectionsLabel:"Études affichées",
+    offlineFrench:"Enregistrer aussi le français", offlineFrenchHint:"Hayom Yom : traductions disponibles. Tanya : passages déjà traduits sur cet appareil.", offlineFrenchDone:(hy,ta)=>`Français hors connexion : Hayom Yom ${hy} jour(s) · Tanya ${ta} passage(s) déjà traduit(s).`,
     offlineLabel:"Lire sans internet", prefetchBtn:"Enregistrer les 7 prochains jours", prefetchHint:"Pratique pour Chabbat et les fêtes",
     savedHint:"La progression et les réglages restent dans ce navigateur.", save:"Enregistrer", cancel:"Annuler",
     abroad:" (diaspora)", progress:(ok,tot)=>`${ok} sur ${tot} enregistrées…`,
@@ -604,7 +618,10 @@ function rowsOf(tx){
   return out;
 }
 const cKey = c => typeof c==="object" && c ? `${c.daf}${c.amud}` : String(c);
-const cName = (c, head) => typeof c==="object" && c ? `דף ${gem(c.daf)} עמוד ${c.amud ? "ב" : "א"}` : `${head} ${gem(c)}`;
+const formatHebrewDate = iso => new Intl.DateTimeFormat("fr-FR-u-ca-hebrew",{day:"numeric",month:"long",year:"numeric",timeZone:"UTC"}).format(new Date(iso+"T12:00:00Z"));
+const headingsFr={"פרק":"Chapitre","מזמור":"Psaume","דף":"Page","מצוות עשה":"Commandements positifs","מצוות לא תעשה":"Interdictions","שורש":"Principe"};
+const readingHeading=(c,head)=>settings.lang==="fr"?(headingsFr[head]||head)+" "+c:`${head} ${gem(c)}`;
+const cName = (c, head) => settings.lang==="fr" && typeof c==="object" && c ? `Page ${c.daf}${c.amud?"b":"a"}` : typeof c==="object" && c ? `דף ${gem(c.daf)} עמוד ${c.amud ? "ב" : "א"}` : readingHeading(c,head);
 function group(rows, head, titleFor){
   const groups = []; let last = null;
   rows.forEach(r=>{ const k = (titleFor ? titleFor(r) : "") + "|" + cKey(r.c);
@@ -622,13 +639,13 @@ const HOLIDAY = /Pesach|Sukkot|Shavuot|Rosh Hashan|Yom Kippur|Atzeret|Simchat|Ch
 /* Hayom Yom from ChassidusHub. Honor source rights and show attribution. */
 async function hayomYomDaily(iso){
   const key="c:hy2:"+iso, saved=store.get(key);
-  if(saved && (saved.readings||[]).some(r=>(r.paragraphs||[]).length)) return saved;
-  const res=await fetch("/api/hayomyom?date="+encodeURIComponent(iso));
+  if(saved && (saved.readings||[]).some(r=>(r.paragraphs||[]).length)) return {...saved,sub:settings.lang==="fr"?formatHebrewDate(iso):saved.readings.map(x=>x.label).filter(Boolean).join(" · ")};
+  const res=await fetch("/api/hayomyom?date="+encodeURIComponent(iso),{signal:AbortSignal.timeout(15000)});
   if(!res.ok) throw new Error("Hayom Yom API HTTP "+res.status);
   const json=await res.json();
   const readings=Array.isArray(json.readings)?json.readings:[];
-  if(!readings.length) throw new Error(settings.lang==="fr"?"Hayom Yom indisponible pour cette date.":"היום יום אינו זמין לתאריך הזה.");
-  const result={sub:readings.map(x=>x.label).filter(Boolean).join(" · "),readings,groups:[],src:[]};
+
+  const result={sub:settings.lang==="fr"?formatHebrewDate(iso):readings.map(x=>x.label).filter(Boolean).join(" · "),readings,groups:[],src:[]};
   /* Only keep full texts offline: an empty answer must be retried, never replayed. */
   if(readings.some(r=>(r.paragraphs||[]).length)) store.set(key,result);
   return result;
@@ -637,7 +654,6 @@ async function hayomYomDaily(iso){
 try{ Object.keys(localStorage).filter(k=>k.startsWith("yb:c:hy:")).forEach(k=>localStorage.removeItem(k)); }catch{}
 
 const LOADERS = {
-  async hayomyom(ctx){return hayomYomDaily(ctx.iso);},
   async chumash(ctx){
     /* When the coming Shabbat has a holiday reading, Chabad studies the next regular parasha. */
     let it = ctx.cal.find(i=>i.order===1);
@@ -655,7 +671,7 @@ const LOADERS = {
       try{ const rt = await fetchText(`Rashi on ${book} ${c}`); rashi[c] = Array.isArray(rt.text) ? rt.text : []; rsrc = rt; }catch{ rashi[c] = []; }
     }));
     rows.forEach(r=>{ const x = (rashi[r.c]||[])[r.v-1]; r.rashi = Array.isArray(x) ? x.map(clean).filter(Boolean) : (x ? [clean(x)] : []); });
-    return {sub:t("chumashSub")(it, idx, tx.heRef), groups:group(rows,"פרק"), src:[tx, rsrc].filter(Boolean)};
+    return {sub:t("chumashSub")(it, idx, settings.lang==="fr"?tx.ref:tx.heRef), groups:group(rows,"פרק"), src:[tx, rsrc].filter(Boolean), frenchRefs:[tx.ref]};
   },
   async tehillim(ctx){
     const {hd} = ctx.h, nextHd = ctx.hNext ? ctx.hNext.hd : null;
@@ -663,7 +679,7 @@ const LOADERS = {
     const e = short ? [140,150] : TEHILLIM[Math.min(hd,30)-1];
     const ref = Array.isArray(e) ? `Psalms ${e[0]}-${e[1]}` : `Psalms ${e}`;
     const tx = await fetchText(ref, "hebrew|Tanach with Nikkud");
-    return {sub:t("tehSub")(hd, short, tx.heRef), groups:group(rowsOf(tx),"מזמור"), src:[tx]};
+    return {sub:t("tehSub")(hd, short, settings.lang==="fr"?ref.replace(/^Psalms /,"Psaumes "):tx.heRef), groups:group(rowsOf(tx),"מזמור"), src:[tx]};
   },
   async tanya(ctx){
     const a = (ctx.cal.find(i=>i.order===15)||{}).ref;
@@ -672,7 +688,7 @@ const LOADERS = {
     if(!b) throw new Error(t("errNoTanya"));
     const P = r => { const m = String(r||"").match(/^(Tanya, Part [IVX]+; .+?) (\d+)(?::(\d+))?$/); return m ? {book:m[1], ch:+m[2], seg:m[3] ? +m[3] : 1} : null; };
     const A = P(a), B = P(b);
-    if(!A || !B){ const tx = await fetchText(a); return {sub:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]}; }
+    if(!A || !B){ const tx = await fetchText(a); return {sub:settings.lang==="fr"?tx.ref:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]}; }
     const rows = [], srcs = []; let heBook = "";
     const take = async (book, ch, from, to) => { const tx = await fetchText(`${book} ${ch}`); srcs.push(tx); if(!heBook) heBook = tx.heRef.replace(/\s+\S+$/,"");
       rowsOf(tx).forEach(r=>{ if(r.v>=from && r.v<to) rows.push(r); }); };
@@ -687,7 +703,7 @@ const LOADERS = {
     const range = f.c===l.c
       ? `${name} ${gem(f.c)}, ${f.v===l.v ? gem(f.v) : gem(f.v)+"–"+gem(l.v)}`
       : `${name} ${gem(f.c)}:${gem(f.v)} – ${gem(l.c)}:${gem(l.v)}`;
-    return {sub:range, groups:group(rows,"פרק"), src:srcs.slice(0,1)};
+    return {sub:settings.lang==="fr"?`Tanya · ${readingHeading(f.c,"פרק")}, ${f.v}${f.c===l.c?(f.v===l.v?"":"–"+l.v):" → "+readingHeading(l.c,"פרק")+", "+l.v}`:range, groups:group(rows,"פרק"), src:srcs.slice(0,1)};
   },
   async rambam3(ctx){ return rambam(ctx, 7); },
   async rambam1(ctx){ return rambam(ctx, 6); },
@@ -706,22 +722,22 @@ const LOADERS = {
     const link = `https://www.chabad.org/dailystudy/seferHamitzvos.asp?tdate=${mo}/${d}/${y}`;
     const refs = smRefs(body);
     if(!refs) return {sub:t("smSub")(day), groups:[], src:[], link, note:body};
-    const groups = []; let src = null;
+    const groups = [], frenchRefs=[]; let src = null;
     for(const r of refs){
-      const tx = await fetchText(r.ref); src = src || tx;
-      group(rowsOf(tx), r.head, row=>`${r.head} ${gem(row.c)}`).forEach(g=>groups.push(g));
+      const tx = await fetchText(r.ref); src = src || tx; frenchRefs.push(tx.ref);
+      group(rowsOf(tx), r.head, row=>readingHeading(row.c,r.head)).forEach(g=>groups.push(g));
     }
-    return {sub:t("smSub")(day), groups, src:src ? [src] : []};
+    return {sub:t("smSub")(day), groups, src:src ? [src] : [], frenchRefs};
   },
   async mishna(ctx){
     const it = ctx.cal.find(i=>i.order===5); if(!it) throw new Error(t("errNoMishna"));
     const tx = await fetchText(it.ref);
-    return {sub:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]};
+    return {sub:settings.lang==="fr"?it.en||tx.ref:tx.heRef, groups:group(rowsOf(tx),"פרק"), src:[tx]};
   },
   async daf(ctx){
     const it = ctx.cal.find(i=>i.order===3); if(!it) throw new Error(t("errNoDaf"));
     const tx = await fetchText(it.ref);
-    return {sub:it.he || tx.heRef, groups:group(rowsOf(tx),"דף"), src:[tx]};
+    return {sub:settings.lang==="fr"?it.en||tx.ref:it.he||tx.heRef, groups:group(rowsOf(tx),"דף"), src:[tx]};
   }
 };
 /* "P1, N1, P2" / "N10-N12" / "Principle 1-3" -> Sefaria refs; null when the day is an introduction */
@@ -742,11 +758,11 @@ async function rambam(ctx, order){
   const items = ctx.cal.filter(i=>i.order===order); if(!items.length) throw new Error(t("errNoRambam"));
   const groups = [], src = [], subs = [];
   for(const it of items){
-    const tx = await fetchText(it.ref); src.push(tx); subs.push(it.he || tx.heRef);
+    const tx = await fetchText(it.ref); src.push(tx); subs.push(settings.lang==="fr"?it.en||tx.ref:it.he||tx.heRef);
     const book = (it.he||"").replace(/\s+\S+$/,"");
-    group(rowsOf(tx),"פרק", r=>`${book} · פרק ${gem(r.c)}`).forEach(g=>groups.push(g));
+    group(rowsOf(tx),"פרק", r=>settings.lang==="fr"?readingHeading(r.c,"פרק"):`${book} · פרק ${gem(r.c)}`).forEach(g=>groups.push(g));
   }
-  return {sub:subs.join(" · "), groups, src:src.slice(0,1)};
+  return {sub:subs.join(" · "), groups, src:src.slice(0,1), frenchRefs:src.map(tx=>tx.ref)};
 }
 
 /* ---------- context per date ---------- */
@@ -766,8 +782,8 @@ const secCache = new Map();
 function loadSection(id, iso){
   const key = `${iso}:${id}:${settings.city}:${settings.lang}`;
   if(!secCache.has(key)){
-    const p = getCtx(iso).then(ctx=>LOADERS[id](ctx));
-    p.catch(()=>secCache.delete(key));
+    const p = id==="hayomyom" ? hayomYomDaily(iso) : getCtx(iso).then(ctx=>LOADERS[id](ctx));
+    p.then(data=>{if(id==="hayomyom" && !data.readings.length)secCache.delete(key);},()=>secCache.delete(key));
     secCache.set(key, p);
   }
   return secCache.get(key);
@@ -870,14 +886,8 @@ function rateLimitError(){
 async function translateFrench(hebrew){
   const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
   if(!phrase) return "";
-  if(frenchCache.has(phrase)) return frenchCache.get(phrase);
-  const key=frenchStorageKey(phrase);
-  try{
-    const saved=JSON.parse(localStorage.getItem(key)||"null");
-    if(saved?.source===phrase && typeof saved.translation==="string" && saved.translation){
-      frenchCache.set(phrase,saved.translation);return saved.translation;
-    }
-  }catch{}
+  const key=frenchStorageKey(phrase), saved=cachedFrenchPhrase(phrase);
+  if(saved){frenchCache.set(phrase,saved);return saved;}
   if(frenchRateLimitUntil && Date.now()>=frenchRateLimitUntil){
     frenchRateLimitUntil=0;frenchRateLimited=false;
     try{localStorage.removeItem("yb:translation:he-fr:limit-until");}catch{}
@@ -910,10 +920,22 @@ async function translateFrench(hebrew){
   try{localStorage.setItem(key,JSON.stringify({source:phrase,translation:result}));}catch{}
   return result;
 }
+const frenchQueryText=text=>text.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,"").trim();
+function readingPlainText(raw){
+  return new DOMParser().parseFromString("<div>"+clean(raw)+"</div>","text/html").body.textContent;
+}
 function tanyaSourceText(paragraph){
   const clone=paragraph.cloneNode(true);
-  clone.querySelectorAll(".tanya-word-tip").forEach(node=>node.remove());
-  return clone.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,"").replace(/^\s*[א-ת׳״]+\s*/,"").trim();
+  clone.querySelectorAll(".vn,.tanya-word-tip").forEach(node=>node.remove());
+  return frenchQueryText(clone.textContent);
+}
+function cachedFrenchPhrase(phrase){
+  if(frenchCache.has(phrase))return frenchCache.get(phrase);
+  try{
+    const saved=JSON.parse(localStorage.getItem(frenchStorageKey(phrase))||"null");
+    if(saved?.source===phrase && typeof saved.translation==="string" && saved.translation)return saved.translation;
+  }catch{}
+  return "";
 }
 async function showTanyaFrench(secEl){
   if(!secEl || !settings.tanyaFrench) return;
@@ -945,7 +967,7 @@ function syncFrenchControl(button, visible){
   button.querySelector("span").textContent=frenchActionLabel(visible);
 }
 function createFrenchCard(id, detail=""){
-  const card=document.createElement("div");card.className="french-card";card.dir="ltr";card.lang="fr";
+  const card=document.createElement("div");card.className="french-card";card.id=id+"-card";card.dir="ltr";card.lang="fr";
   const head=document.createElement("div");head.className="french-card-head";
   const label=document.createElement("div");label.className="french-card-meta";
   const language=document.createElement("strong");language.textContent="Français";
@@ -968,7 +990,9 @@ function createFrenchCard(id, detail=""){
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
-    return (data.readings||[]).map((r,ri)=>{
+    if(!data.readings?.length)return '<div class="msg" dir="auto">'+esc(t("hayomOriginalUnavailable"))+
+      '<br><button type="button" class="tool" data-retry="1">'+esc(t("retry"))+'</button></div>';
+    return data.readings.map((r,ri)=>{
       const source=r.url ? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 0">'+(settings.lang==="fr"?"Source officielle ↗":"מקור הטקסט ↗")+'</a>' : "";
       const body=(r.paragraphs||[]).length
         ? r.paragraphs.map((p,pi)=>'<p class="v" data-sec="hayomyom" data-pos="h'+ri+'p'+pi+'" dir="rtl">'+wordsHTML(esc(p))+'</p>').join("")
@@ -1052,6 +1076,22 @@ async function loadHayomYomHebrew(el, iso, my){
 }
 
 const HAYOM_YOM_API="https://hayom-yom-api.shmouel6.workers.dev";
+async function hayomYomFrench(iso){
+  const key="c:hy-fr:"+iso;
+  const saved=store.get(key);
+  if(saved?.translation)return saved;
+  const response=await fetch(HAYOM_YOM_API+"/api/translations/"+encodeURIComponent(iso)+"?lang=fr",{
+    signal:AbortSignal.timeout(10000)
+  });
+  if(response.status===404)return null;
+  if(!response.ok)throw new Error("hayom-french-unavailable");
+  const french=await response.json();
+  if(french.date!==iso || french.language!=="fr" || typeof french.translation!=="string" || !french.translation.trim()){
+    throw new Error("invalid-hayom-french");
+  }
+  store.set(key,french);
+  return french;
+}
 function setupHayomYomFrench(el, sub, iso, my){
   sub.insertAdjacentHTML("afterend",frenchControls("data-hayom-french"));
   const button=el.querySelector("[data-hayom-french]");
@@ -1065,20 +1105,12 @@ function setupHayomYomFrench(el, sub, iso, my){
     delete view.body.dataset.state;
     view.body.textContent="Chargement de la traduction…";
     try{
-      const response=await fetch(HAYOM_YOM_API+"/api/translations/"+encodeURIComponent(iso)+"?lang=fr",{
-        signal:AbortSignal.timeout(10000)
-      });
+      const french=await hayomYomFrench(iso);
       if(my!==state.token || !el.isConnected)return;
-      if(response.status===404){
+      if(!french){
         view.body.textContent="Aucune traduction française enregistrée pour cette date.";
         loaded=true;
         return;
-      }
-      if(!response.ok)throw new Error("hayom-french-unavailable");
-      const french=await response.json();
-      if(my!==state.token || !el.isConnected)return;
-      if(french.date!==iso || french.language!=="fr" || typeof french.translation!=="string" || !french.translation.trim()){
-        throw new Error("invalid-hayom-french");
       }
       view.body.textContent=french.translation.trim();
       const source=typeof french.source==="string"?french.source.trim():"";
@@ -1123,6 +1155,97 @@ function setupHayomYomFrench(el, sub, iso, my){
     }
   });
 }
+async function frenchEdition(ref){
+  const key="c:edition-fr-v1:"+ref;
+  const cached=store.get(key);
+  if(cached)return cached;
+  const response=await fetch(SEF+"/v3/texts/"+encodeURIComponent(ref)+"?version=french",{
+    signal:AbortSignal.timeout(12000)
+  });
+  if(!response.ok)throw new Error("french-source-unavailable");
+  const data=await response.json();
+  const version=data.versions?.find(v=>v.actualLanguage==="fr" && /^(public domain|cc0|cc-by(?:-sa)?)$/i.test(v.license||""));
+  if(!version)return null;
+  const rows=rowsOf({sections:data.sections,text:version.text});
+  const passages=rows.map(row=>({reference:cKey(row.c)+":"+row.v,text:readingPlainText(row.raw)})).filter(x=>x.text.trim());
+  if(!passages.length)return null;
+  const result={ref,title:version.versionTitle,license:version.license,passages};
+  store.set(key,result);
+  return result;
+}
+function addMachinePassages(view, section, data, editorAvailable){
+  const readings=data.groups.flatMap(group=>group.rows.flatMap(row=>{
+    const label=group.title+" · "+row.v;
+    const entries=editorAvailable?[]:[{label,raw:row.raw}];
+    if(section.id==="chumash" && settings.rashi && row.rashi?.length){
+      entries.push({label:"Rachi · "+label,raw:row.rashi});
+    }
+    return entries;
+  }));
+  if(!readings.length)return;
+  const tools=document.createElement("div");tools.className="french-passage-tools";
+  const select=document.createElement("select");select.id=view.card.id+"-passage";
+  const label=document.createElement("label");label.htmlFor=select.id;label.textContent="Passage à traduire automatiquement";
+  readings.forEach((entry,index)=>select.add(new Option(entry.label,String(index))));
+  const button=document.createElement("button");button.className="tool";button.type="button";button.textContent="Traduire ce passage";
+  const result=document.createElement("p");result.setAttribute("role","status");result.hidden=true;
+  button.addEventListener("click",async ()=>{
+    button.disabled=true;select.disabled=true;result.hidden=false;result.textContent="Traduction automatique en cours…";
+    try{
+      const entry=readings[Number(select.value)], phrase=frenchQueryText(readingPlainText(entry.raw));
+      const translated=await translateFrench(phrase);
+      result.textContent=translated?"Traduction automatique · "+translated:"Ce passage ne contient pas de texte à traduire.";
+    }catch(error){result.textContent=translationErrorMessage(error);}
+    finally{button.disabled=false;select.disabled=false;}
+  });
+  tools.append(label,select,button,result);view.body.after(tools);
+}
+function setupReadingFrench(el, sub, section, data, my){
+  const refs=[...new Set((data.frenchRefs||data.src.map(source=>source.ref)).filter(Boolean))];
+  if(!refs.length && !data.groups.some(group=>group.rows.length))return;
+  sub.insertAdjacentHTML("afterend",frenchControls("data-reading-french"));
+  const button=el.querySelector("[data-reading-french]");
+  let view;
+  button.addEventListener("click",async ()=>{
+    if(view){
+      view.card.hidden=!view.card.hidden;
+      if(!view.card.hidden)view.setExpanded(true);
+      syncFrenchControl(button,!view.card.hidden);
+      return;
+    }
+    view=createFrenchCard(section.id+"-fr");
+    el.querySelector(".text").append(view.card);
+    syncFrenchControl(button,true);
+    view.body.setAttribute("aria-busy","true");
+    view.body.textContent="Recherche d’une édition française…";
+    const results=await Promise.allSettled(refs.map(frenchEdition));
+    if(my!==state.token || !el.isConnected)return;
+    const editions=results.flatMap(result=>result.status==="fulfilled" && result.value?[result.value]:[]);
+    view.body.replaceChildren();
+    for(const edition of editions){
+      const heading=document.createElement("strong");
+      heading.textContent=edition.title+" · "+edition.license;
+      view.body.append(heading);
+      for(const paragraph of edition.passages){
+        const line=document.createElement("p");
+        const number=document.createElement("small");number.textContent=paragraph.reference+" ";
+        line.append(number,document.createTextNode(paragraph.text));
+        view.body.append(line);
+      }
+    }
+    if(!editions.length){
+      view.body.textContent=results.some(result=>result.status==="rejected")
+        ?"La source française est temporairement indisponible."
+        :"Aucune édition française intégrée pour ce passage.";
+    }else if(editions.length<refs.length){
+      const note=document.createElement("p");note.textContent="L’édition française ne couvre qu’une partie de la lecture.";view.body.append(note);
+    }
+    view.body.setAttribute("aria-busy","false");
+    const originalCount=data.groups.reduce((count,group)=>count+group.rows.length,0);
+    const translatedCount=editions.reduce((count,edition)=>count+edition.passages.length,0);
+    addMachinePassages(view,section,data,editions.length===refs.length && translatedCount>=originalCount && translatedCount>0);
+  });
+}
 async function fill(el, sec, iso, my){
   try{
     const data = await loadSection(sec.id, iso);
@@ -1136,10 +1259,13 @@ async function fill(el, sec, iso, my){
     if(sec.id==="hayomyom"){
       setupHayomYomFrench(el,sub,iso,my);
       loadHayomYomHebrew(el,iso,my);
+    }else if(sec.id!=="tanya"){
+      setupReadingFrench(el,sub,sec,data,my);
     }
   }catch(e){
     if(my!==state.token) return;
-    el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
+    el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(sec.id==="hayomyom"?t("hayomOriginalUnavailable"):errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;
+    if(sec.id==="hayomyom" && !el.querySelector("[data-hayom-french]"))setupHayomYomFrench(el,el.querySelector(".sub"),iso,my);
   }
 }
 function render(){
@@ -1199,21 +1325,30 @@ $("#waInvite").onclick = ()=>openWhatsApp(t("waInviteText")+"\n"+SITE);
 /* ---------- offline: save the next days ---------- */
 async function prefetch(days){
   const msg = $("#prefetchMsg"), btn = $("#prefetchBtn"); btn.disabled = true;
-  const start = state.iso || cityISO(); let ok = 0, fail = 0; const total = days * visible().length;
+  const sections=visible(), includeFrench=$("#offlineFrench").checked;
+  let hayomSaved=0,tanyaSaved=0;
+  const start = state.iso || cityISO(); let ok = 0, fail = 0; const total = days * sections.length;
   for(let i=0;i<days;i++){
     const iso = addDays(start,i);
-    for(const s of visible()){
+    for(const s of sections){
       let done = false;
       for(let attempt=0; attempt<3 && !done; attempt++){
         try{ await loadSection(s.id, iso); done = true; }
         catch{ await sleep(4000*(attempt+1)); }
       }
       done ? ok++ : fail++;
-      msg.textContent = t("progress")(ok, total);
+      if(includeFrench && s.id==="hayomyom"){
+        try{if(await hayomYomFrench(iso) && store.get("c:hy-fr:"+iso))hayomSaved++;}catch{}
+      }
+      if(includeFrench && done && s.id==="tanya"){
+        const data=await loadSection(s.id,iso);
+        tanyaSaved+=data.groups.flatMap(group=>group.rows).filter(row=>cachedFrenchPhrase(frenchQueryText(readingPlainText(row.raw)))).length;
+      }
+      msg.textContent = t("progress")(ok+fail, total);
       await sleep(700); /* stay gentle with Sefaria */
     }
   }
-  msg.textContent = fail ? t("prefFail")(ok, fail) : t("prefDone")(ok, days);
+  msg.textContent = (fail ? t("prefFail")(ok, fail) : t("prefDone")(ok, days))+(includeFrench?" · "+t("offlineFrenchDone")(hayomSaved,tanyaSaved):"");
   btn.disabled = false;
 }
 
@@ -1247,7 +1382,7 @@ $("#content").addEventListener("click", async e=>{
     const sec=toggle.closest(".sec");
     syncFrenchControl(toggle,settings.tanyaFrench);
     if(settings.tanyaFrench) showTanyaFrench(sec);
-    else sec.querySelectorAll(".french-card,.tanya-word-tip").forEach(x=>x.remove());
+    else{sec.querySelectorAll(".french-card,.tanya-word-tip").forEach(x=>x.remove());sec.querySelectorAll(".tanya-word-selected").forEach(x=>x.classList.remove("tanya-word-selected"));}
     return;
   }
   const word=e.target.closest(".w");
@@ -1255,10 +1390,15 @@ $("#content").addEventListener("click", async e=>{
   const parent=word.closest(".v");
   const section=word.closest("#s-tanya");
   section.querySelectorAll(".tanya-word-tip").forEach(x=>x.remove());
-  const tip=document.createElement("div");tip.className="tanya-word-tip";tip.dir="ltr";tip.lang="fr";tip.textContent="Traduction du mot…";
+  section.querySelectorAll(".tanya-word-selected").forEach(x=>x.classList.remove("tanya-word-selected"));
+  word.classList.add("tanya-word-selected");
+  const tip=document.createElement("div");tip.className="tanya-word-tip";tip.dir="ltr";tip.lang="fr";
+  const source=document.createElement("bdi");source.className="tanya-word-source";source.lang="he";source.dir="rtl";source.textContent=word.textContent;
+  const result=document.createElement("span");result.setAttribute("role","status");result.textContent="Traduction du mot…";
+  tip.append(source,document.createTextNode(" · "),result);
   parent.after(tip);
-  try{tip.textContent=await translateFrench(word.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,""));}
-  catch(error){tip.textContent=translationErrorMessage(error);}
+  try{result.textContent=await translateFrench(word.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,""));}
+  catch(error){result.textContent=translationErrorMessage(error);}
 
 });
 $("#statusRetry").onclick = ()=>{ down.clear(); setStatus(); render(); };
@@ -1404,7 +1544,7 @@ async function addToCalendar(btn){
   const ics = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//yom-beyomo//FR", "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
-    `UID:${iso.replace(/-/g,"")}-${stamp}@yom-beyomo.pages.dev`,
+    `UID:${iso.replace(/-/g,"")}-${stamp}@yombeyomo.com`,
     `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${iso.replace(/-/g,"")}`,
     `DTEND;VALUE=DATE:${addDays(iso,1).replace(/-/g,"")}`,
@@ -1429,9 +1569,9 @@ const STUDY = {id:null, name:"", follow:false, full:false, peers:[], timer:null,
 const SID_RE = /^[a-f0-9]{32}$/;
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function newSessionId(){ const a = new Uint8Array(16); crypto.getRandomValues(a); return [...a].map(b=>b.toString(16).padStart(2,"0")).join(""); }
-function studyUrl(){ const u = new URL(location.href); u.searchParams.set("s", STUDY.id); if(state.iso) u.searchParams.set("d", state.iso); return u.toString(); }
+function studyUrl(){ const u = new URL(SITE); u.searchParams.set("s", STUDY.id); if(state.iso) u.searchParams.set("d", state.iso); return u.toString(); }
 function cleanUrl(){ const u = new URL(location.href); u.searchParams.delete("s"); return u.toString(); }
-function syncUrl(){ if(STUDY.id && state.iso) history.replaceState(null, "", studyUrl()); }
+function syncUrl(){ if(STUDY.id && state.iso){ const u=new URL(location.href); u.searchParams.set("s",STUDY.id); u.searchParams.set("d",state.iso); history.replaceState(null,"",u); } }
 const POLL_INTERVAL = 1000;
 const peerName = p => p.name || t("studyDef");
 function nextStudySeq(){
