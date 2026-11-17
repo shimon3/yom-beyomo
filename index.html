@@ -822,10 +822,44 @@ function wordsHTML(html){
 /* Opt-in translation: requests are sent only after the reader enables French or clicks a word.
    MyMemory is a third-party automatic translation service; failures are shown, never invented. */
 const frenchCache = new Map();
+let frenchRateLimited = false;
+let frenchRateLimitUntil = 0;
+try{frenchRateLimitUntil=Number(localStorage.getItem("yb:translation:he-fr:limit-until")||0)||0;}catch{}
+function frenchStorageKey(phrase){return "yb:translation:he-fr:"+encodeURIComponent(phrase);}
+function translationErrorMessage(error){
+  if(error?.code==="TRANSLATION_RATE_LIMIT") return "Le quota gratuit du service de traduction est atteint. Réessaie plus tard.";
+  return "Traduction temporairement indisponible.";
+}
+function markFrenchRateLimit(details){
+  frenchRateLimited=true;
+  const match=String(details||"").match(/NEXT AVAILABLE IN\s+(?:(\d+)\s*HOURS?)?\s*(?:(\d+)\s*MINUTES?)?\s*(?:(\d+)\s*SECONDS?)?/i);
+  if(match){
+    const seconds=(Number(match[1]||0)*3600)+(Number(match[2]||0)*60)+Number(match[3]||0);
+    if(seconds>0){
+      frenchRateLimitUntil=Date.now()+seconds*1000;
+      try{localStorage.setItem("yb:translation:he-fr:limit-until",String(frenchRateLimitUntil));}catch{}
+    }
+  }
+}
+function rateLimitError(){
+  const error=new Error("Quota de traduction atteint");error.code="TRANSLATION_RATE_LIMIT";return error;
+}
 async function translateFrench(hebrew){
   const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
   if(!phrase) return "";
   if(frenchCache.has(phrase)) return frenchCache.get(phrase);
+  const key=frenchStorageKey(phrase);
+  try{
+    const saved=JSON.parse(localStorage.getItem(key)||"null");
+    if(saved?.source===phrase && typeof saved.translation==="string" && saved.translation){
+      frenchCache.set(phrase,saved.translation);return saved.translation;
+    }
+  }catch{}
+  if(frenchRateLimitUntil && Date.now()>=frenchRateLimitUntil){
+    frenchRateLimitUntil=0;frenchRateLimited=false;
+    try{localStorage.removeItem("yb:translation:he-fr:limit-until");}catch{}
+  }
+  if(frenchRateLimited || frenchRateLimitUntil>Date.now()) throw rateLimitError();
   const chunks=[]; let piece=""; const byteLen=x=>new TextEncoder().encode(x).length;
   for(const word of phrase.split(/(\s+)/)){
     if(byteLen(word)>450){ if(piece){chunks.push(piece);piece="";} for(const char of word){if(byteLen(piece+char)>450){chunks.push(piece);piece="";}piece+=char;} }
@@ -840,13 +874,18 @@ async function translateFrench(hebrew){
     const timer=setTimeout(()=>controller.abort(),12000);
     try{
       const response=await fetch(url,{signal:controller.signal});
-      if(!response.ok) throw new Error("HTTP "+response.status);
-      const json=await response.json();
-      if(Number(json.responseStatus)!==200 || !json.responseData?.translatedText) throw new Error("Traduction indisponible");
+      let json;
+      try{json=await response.json();}catch{throw new Error("Réponse de traduction illisible");}
+      const details=json?.responseDetails || json?.responseData?.translatedText || "";
+      const quota= response.status===429 || Number(json?.responseStatus)===429 || json?.quotaFinished===true || /MYMEMORY WARNING:.*(?:LIMIT|AVAILABLE FREE TRANSLATIONS)/is.test(String(details));
+      if(quota){markFrenchRateLimit(details);throw rateLimitError();}
+      if(!response.ok || Number(json?.responseStatus)!==200 || !json.responseData?.translatedText) throw new Error("Traduction indisponible");
       translations.push(json.responseData.translatedText);
     }finally{clearTimeout(timer);}
   }
-  const result=translations.join(" "); frenchCache.set(phrase,result); return result;
+  const result=translations.join(" "); frenchCache.set(phrase,result);
+  try{localStorage.setItem(key,JSON.stringify({source:phrase,translation:result}));}catch{}
+  return result;
 }
 function tanyaSourceText(paragraph){
   const clone=paragraph.cloneNode(true);
@@ -875,7 +914,7 @@ async function showTanyaFrench(secEl){
     async function loadTranslation(){
       body.textContent="Traduction en cours…";retry.hidden=true;
       try{body.textContent=await translateFrench(tanyaSourceText(paragraph));}
-      catch{body.textContent="Traduction temporairement indisponible.";retry.hidden=false;}
+      catch(error){body.textContent=translationErrorMessage(error);retry.hidden=error?.code==="TRANSLATION_RATE_LIMIT";}
     }
     retry.addEventListener("click",loadTranslation);
     head.append(label,toggle);div.append(head,body,retry);paragraph.after(div);
@@ -1134,7 +1173,7 @@ $("#content").addEventListener("click", async e=>{
   const tip=document.createElement("div");tip.className="tanya-word-tip";tip.dir="ltr";tip.lang="fr";tip.textContent="Traduction du mot…";
   parent.after(tip);
   try{tip.textContent=await translateFrench(word.textContent.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,""));}
-  catch{tip.textContent="Traduction indisponible.";}
+  catch(error){tip.textContent=translationErrorMessage(error);}
 
 });
 $("#statusRetry").onclick = ()=>{ down.clear(); setStatus(); render(); };
@@ -1433,7 +1472,7 @@ function studyBar(){
     $(".top .wrap").append(bar); bar.addEventListener("click", studyBarClick);
   }
   const who = STUDY.peers.map(p => {
-    const lastPart = p.pos ? p.pos.split(".").pop() : ""; const vnum = /^\\d+$/.test(lastPart) ? lastPart : "";
+    const lastPart = p.pos ? p.pos.split(".").pop() : ""; const vnum = /^\d+$/.test(lastPart) ? lastPart : "";
     const where = p.iso !== state.iso ? " · " + p.iso : (!settings.all && p.sec !== state.active ? " · " + sectionLabel(p.sec) : "");
     return `<b>${esc(peerName(p))}</b>` + (vnum ? ` · ${t("studyVerse")} ${esc(vnum)}` : "") + (p.w != null ? ` · ${t("studyWord")} ${p.w + 1}` : "") + esc(where);
   }).join(" · ");
