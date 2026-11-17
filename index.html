@@ -819,30 +819,15 @@ function wordsHTML(html){
   return box.innerHTML;
 }
 
-/* Opt-in translation: requests are sent only after the reader enables French or clicks a word.
-   MyMemory is a third-party automatic translation service; failures are shown, never invented. */
+/* Opt-in Hebrew→French translation through our own Pages Function.
+   The Azure key stays server-side; successful results are cached in this browser. */
 const frenchCache = new Map();
-let frenchRateLimited = false;
-let frenchRateLimitUntil = 0;
-try{frenchRateLimitUntil=Number(localStorage.getItem("yb:translation:he-fr:limit-until")||0)||0;}catch{}
-function frenchStorageKey(phrase){return "yb:translation:he-fr:"+encodeURIComponent(phrase);}
+const frenchInflight = new Map();
+function frenchStorageKey(phrase){return "yb:translation:azure:he-fr:"+encodeURIComponent(phrase);}
 function translationErrorMessage(error){
-  if(error?.code==="TRANSLATION_RATE_LIMIT") return "Le quota gratuit du service de traduction est atteint. Réessaie plus tard.";
+  if(error?.code==="TRANSLATION_RATE_LIMIT") return "Le quota Azure Translator est atteint. Réessaie plus tard.";
+  if(error?.code==="TRANSLATION_NOT_CONFIGURED") return "Le service Azure Translator n’est pas encore configuré pour cet aperçu.";
   return "Traduction temporairement indisponible.";
-}
-function markFrenchRateLimit(details){
-  frenchRateLimited=true;
-  const match=String(details||"").match(/NEXT AVAILABLE IN\s+(?:(\d+)\s*HOURS?)?\s*(?:(\d+)\s*MINUTES?)?\s*(?:(\d+)\s*SECONDS?)?/i);
-  if(match){
-    const seconds=(Number(match[1]||0)*3600)+(Number(match[2]||0)*60)+Number(match[3]||0);
-    if(seconds>0){
-      frenchRateLimitUntil=Date.now()+seconds*1000;
-      try{localStorage.setItem("yb:translation:he-fr:limit-until",String(frenchRateLimitUntil));}catch{}
-    }
-  }
-}
-function rateLimitError(){
-  const error=new Error("Quota de traduction atteint");error.code="TRANSLATION_RATE_LIMIT";return error;
 }
 async function translateFrench(hebrew){
   const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
@@ -855,38 +840,40 @@ async function translateFrench(hebrew){
       frenchCache.set(phrase,saved.translation);return saved.translation;
     }
   }catch{}
-  if(frenchRateLimitUntil && Date.now()>=frenchRateLimitUntil){
-    frenchRateLimitUntil=0;frenchRateLimited=false;
-    try{localStorage.removeItem("yb:translation:he-fr:limit-until");}catch{}
-  }
-  if(frenchRateLimited || frenchRateLimitUntil>Date.now()) throw rateLimitError();
-  const chunks=[]; let piece=""; const byteLen=x=>new TextEncoder().encode(x).length;
-  for(const word of phrase.split(/(\s+)/)){
-    if(byteLen(word)>450){ if(piece){chunks.push(piece);piece="";} for(const char of word){if(byteLen(piece+char)>450){chunks.push(piece);piece="";}piece+=char;} }
-    else if(byteLen(piece+word)>450){if(piece)chunks.push(piece);piece=word;}
-    else piece+=word;
-  }
-  if(piece)chunks.push(piece);
-  const translations=[];
-  for(const chunk of chunks){
-    const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(chunk)+"&langpair=he%7Cfr";
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),12000);
-    try{
-      const response=await fetch(url,{signal:controller.signal});
-      let json;
-      try{json=await response.json();}catch{throw new Error("Réponse de traduction illisible");}
-      const details=json?.responseDetails || json?.responseData?.translatedText || "";
-      const quota= response.status===429 || Number(json?.responseStatus)===429 || json?.quotaFinished===true || /MYMEMORY WARNING:.*(?:LIMIT|AVAILABLE FREE TRANSLATIONS)/is.test(String(details));
-      if(quota){markFrenchRateLimit(details);throw rateLimitError();}
-      if(!response.ok || Number(json?.responseStatus)!==200 || !json.responseData?.translatedText) throw new Error("Traduction indisponible");
-      translations.push(json.responseData.translatedText);
-    }finally{clearTimeout(timer);}
-  }
-  const result=translations.join(" "); frenchCache.set(phrase,result);
-  try{localStorage.setItem(key,JSON.stringify({source:phrase,translation:result}));}catch{}
-  return result;
+  if(frenchInflight.has(phrase)) return frenchInflight.get(phrase);
+  const operation=(async()=>{
+    const chunks=[]; let piece=""; const byteLen=x=>new TextEncoder().encode(x).length;
+    for(const word of phrase.split(/(\s+)/)){
+      if(byteLen(word)>450){
+        if(piece){chunks.push(piece);piece="";}
+        for(const char of word){if(byteLen(piece+char)>450){chunks.push(piece);piece="";}piece+=char;}
+      }else if(byteLen(piece+word)>450){if(piece)chunks.push(piece);piece=word;}
+      else piece+=word;
+    }
+    if(piece)chunks.push(piece);
+    const translations=[];
+    for(const chunk of chunks){
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),15000);
+      try{
+        const response=await fetch("/api/translate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:chunk}),signal:controller.signal});
+        let json;
+        try{json=await response.json();}catch{throw new Error("Réponse de traduction illisible");}
+        if(response.status===429){const error=new Error("Quota Azure atteint");error.code="TRANSLATION_RATE_LIMIT";throw error;}
+        if(response.status===503&&json?.error==="translator-not-configured"){const error=new Error("Azure Translator non configuré");error.code="TRANSLATION_NOT_CONFIGURED";throw error;}
+        if(!response.ok||typeof json?.translation!=="string"||!json.translation.trim()) throw new Error("Traduction indisponible");
+        translations.push(json.translation.trim());
+      }finally{clearTimeout(timer);}
+    }
+    const result=translations.join(" ");
+    frenchCache.set(phrase,result);
+    try{localStorage.setItem(key,JSON.stringify({source:phrase,translation:result}));}catch{}
+    return result;
+  })();
+  frenchInflight.set(phrase,operation);
+  try{return await operation;}finally{frenchInflight.delete(phrase);}
 }
+
 function tanyaSourceText(paragraph){
   const clone=paragraph.cloneNode(true);
   clone.querySelectorAll(".tanya-word-tip").forEach(node=>node.remove());
