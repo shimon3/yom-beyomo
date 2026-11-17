@@ -832,7 +832,7 @@ function translationErrorMessage(error){
 }
 function markFrenchRateLimit(details){
   frenchRateLimited=true;
-  const match=String(details||"").match(/NEXT AVAILABLE IN\\s+(?:(\\d+)\\s*HOURS?)?\\s*(?:(\\d+)\\s*MINUTES?)?\\s*(?:(\\d+)\\s*SECONDS?)?/i);
+  const match=String(details||"").match(/NEXT AVAILABLE IN\s+(?:(\d+)\s*HOURS?)?\s*(?:(\d+)\s*MINUTES?)?\s*(?:(\d+)\s*SECONDS?)?/i);
   if(match){
     const seconds=(Number(match[1]||0)*3600)+(Number(match[2]||0)*60)+Number(match[3]||0);
     if(seconds>0){
@@ -845,7 +845,7 @@ function rateLimitError(){
   const error=new Error("Quota de traduction atteint");error.code="TRANSLATION_RATE_LIMIT";return error;
 }
 async function translateFrench(hebrew){
-  const phrase=String(hebrew||"").replace(/\\s+/g," ").trim();
+  const phrase=String(hebrew||"").replace(/\s+/g," ").trim();
   if(!phrase) return "";
   if(frenchCache.has(phrase)) return frenchCache.get(phrase);
   const key=frenchStorageKey(phrase);
@@ -861,7 +861,7 @@ async function translateFrench(hebrew){
   }
   if(frenchRateLimited || frenchRateLimitUntil>Date.now()) throw rateLimitError();
   const chunks=[]; let piece=""; const byteLen=x=>new TextEncoder().encode(x).length;
-  for(const word of phrase.split(/(\\s+)/)){
+  for(const word of phrase.split(/(\s+)/)){
     if(byteLen(word)>450){ if(piece){chunks.push(piece);piece="";} for(const char of word){if(byteLen(piece+char)>450){chunks.push(piece);piece="";}piece+=char;} }
     else if(byteLen(piece+word)>450){if(piece)chunks.push(piece);piece=word;}
     else piece+=word;
@@ -1472,7 +1472,7 @@ function studyBar(){
     $(".top .wrap").append(bar); bar.addEventListener("click", studyBarClick);
   }
   const who = STUDY.peers.map(p => {
-    const lastPart = p.pos ? p.pos.split(".").pop() : ""; const vnum = /^\\d+$/.test(lastPart) ? lastPart : "";
+    const lastPart = p.pos ? p.pos.split(".").pop() : ""; const vnum = /^\d+$/.test(lastPart) ? lastPart : "";
     const where = p.iso !== state.iso ? " · " + p.iso : (!settings.all && p.sec !== state.active ? " · " + sectionLabel(p.sec) : "");
     return `<b>${esc(peerName(p))}</b>` + (vnum ? ` · ${t("studyVerse")} ${esc(vnum)}` : "") + (p.w != null ? ` · ${t("studyWord")} ${p.w + 1}` : "") + esc(where);
   }).join(" · ");
