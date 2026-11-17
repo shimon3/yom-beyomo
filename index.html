@@ -61,6 +61,10 @@ button{cursor:pointer}
 .datebar{display:flex;align-items:center;gap:8px;margin-top:10px}
 .datebar .nav{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.9rem}
 .dateinfo{flex:1;min-width:0;text-align:center}
+.today-nav{min-height:36px;max-width:100%;padding:3px 9px;border:0;border-radius:8px;
+  background:transparent;color:var(--accent);font-size:.8rem;font-weight:700}
+@media(hover:hover){.today-nav:hover{background:var(--accent-soft)}}
+.passage-share-select{display:block;width:100%;max-width:100%;margin:6px 0 14px;padding:7px;font-size:1rem}
 .datebar .nav{padding:4px 10px}
 .hdate{font-family:var(--f-text);font-size:clamp(1rem,4.6vw,1.25rem);font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gdate{color:var(--muted);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -254,6 +258,7 @@ footer a{color:inherit}
       <div class="dateinfo">
         <div class="hdate he" id="hdate">&nbsp;</div>
         <div class="gdate" id="gdate">&nbsp;</div>
+        <button type="button" class="today-nav" id="todayBtn" data-t="today"></button>
         <span class="badge" id="badge" hidden></span>
       </div>
       <button class="nav" id="nextDay" data-t="next"></button>
@@ -302,9 +307,22 @@ footer a{color:inherit}
     <button class="tool" id="tCal" data-t="calBtn"></button>
     <button class="tool" id="tImg" data-t="imgBtn"></button>
     <button class="tool" id="tShare" data-t="share"></button>
+    <button type="button" class="tool" id="tPassageShare" aria-haspopup="dialog" data-t="sharePassage"></button>
   </div>
   <form method="dialog"><button class="tool" data-t="close"></button></form>
 </dialog>
+<dialog id="passageShareDlg" class="dlg" aria-labelledby="passageShareTitle">
+  <h3 id="passageShareTitle" data-t="sharePassage"></h3>
+  <p id="passageShareReading"></p>
+  <label for="passageShareChoice" data-t="choosePassage"></label>
+  <select id="passageShareChoice" class="passage-share-select"></select>
+  <p id="passageShareStatus" role="status" hidden></p>
+  <form method="dialog" class="dlg-foot">
+    <button type="button" class="primary" id="passageShareSend" data-t="share"></button>
+    <button class="tool" data-t="close"></button>
+  </form>
+</dialog>
+
 <dialog id="fbDlg">
   <form method="dialog" class="dlg" id="fbForm">
     <h3 data-t="fbTitle"></h3>
@@ -397,6 +415,7 @@ const TEHILLIM = [[1,9],[10,17],[18,22],[23,28],[29,34],[35,38],[39,43],[44,48],
 const T = {
   he:{
     brandSub:"חת״ת, רמב״ם ושיעורים יומיים", install:"התקנה", theme:"מצב תצוגה", settings:"הגדרות",
+    today:"היום", sharePassage:"שיתוף קטע", choosePassage:"קטע לשיתוף", noPassages:"טרם נטענו קטעים לשיתוף.", copyPassage:"העתקת קישור לקטע",
     prev:"→ אתמול", next:"מחר ←", badge:"אחרי השקיעה — הלימוד של מחר",
     all:"הכול בדף אחד", tools:"כלים", imgBtn:"תמונה לשיתוף", imgTitle:"יום ביומו — לימוד היום", imgSite:"yombeyomo.com", studyBtn:"לימוד משותף", studyShare:"שיתוף הקישור", studyCopied:"הקישור הועתק", studyWait:"ממתין לשותף…", studyFollow:"עקוב אחריו", studyStopFollow:"הפסק לעקוב", studyLeave:"סיום", studyAsk:"איך לקרוא לך בלימוד? (לא חובה)", studyDef:"שותף", studyVerse:"פסוק", studyWord:"מילה", studyTitle:"לימוד משותף ביום ביומו", studyWho:"עם", studyFull:"החדר מלא (עד 4 משתתפים)", todayCount:n=>`יותר מ-${n} אנשים ביקרו באתר היום`, calBtn:"הוספה ליומן", icsTitle:"יום ביומו — לימוד היום", cycleTeh:n=>`תהילים: יום ${n} מתוך 30 בחודש`, streakOn:n=>n===1?"יום לימוד ברצף":`${n} ימי לימוד ברצף`, streakResume:"לחזור ללימוד היום", streakStart:"להתחיל היום", rashi:"רש״י", nikud:"ניקוד", share:"שיתוף", smaller:"הקטנת גופן", bigger:"הגדלת גופן",
     done:"סיימתי", doneOn:"✓ סיימתי", none:"לא נבחרו שיעורים. אפשר לבחור בהגדרות.",
@@ -438,6 +457,7 @@ const T = {
   },
   fr:{
     brandSub:"Hitat, Rambam et études du jour", install:"Installer", theme:"Thème", settings:"Réglages",
+    today:"Aujourd’hui", sharePassage:"Partager un passage", choosePassage:"Passage à partager", noPassages:"Aucun passage chargé à partager.", copyPassage:"Copier le lien vers le passage",
     prev:"← Hier", next:"Demain →", badge:"Après le coucher du soleil — étude de demain",
     all:"Tout sur une page", tools:"Outils", imgBtn:"Image à partager", imgTitle:"Étude du jour · יום ביומו", imgSite:"yombeyomo.com", studyBtn:"Étudier à deux", studyShare:"Partager le lien", studyCopied:"Lien copié", studyWait:"En attente de ton partenaire…", studyFollow:"Suivre", studyStopFollow:"Arrêter de suivre", studyLeave:"Quitter", studyAsk:"Ton prénom pour cette session (facultatif)", studyDef:"Partenaire", studyVerse:"verset", studyWord:"mot", studyTitle:"Étudier à deux · יום ביומו", studyWho:"avec", studyFull:"Session complète (4 personnes au maximum)", todayCount:n=>`Plus de ${n} personnes consultent le site aujourd’hui`, calBtn:"Ajouter à l’agenda", icsTitle:"Étude du jour · יום ביומו", cycleTeh:n=>`Tehilim : jour ${n} sur 30 du cycle mensuel`, streakOn:n=>`${n} jour${n>1?"s":""} d’étude de suite`, streakResume:"Reprendre aujourd’hui", streakStart:"Commencer aujourd’hui", rashi:"Rachi", nikud:"Voyelles", share:"Partager", smaller:"Texte plus petit", bigger:"Texte plus grand",
     done:"Terminé", doneOn:"✓ Terminé", none:"Aucune étude choisie. Choisissez-les dans les réglages.",
@@ -792,7 +812,42 @@ function loadSection(id, iso){
 /* ---------- render ---------- */
 let state = {iso:null, auto:false, active:null, token:0, hebrew:""};
 const getDone = iso => store.get("done:"+iso) || {};
-const visible = () => SECTIONS.filter(s=>settings.sections.includes(s.id));
+let linkedReading=null;
+let todayRequest=0;
+const visible = () => SECTIONS.filter(s=>settings.sections.includes(s.id) || linkedReading?.sec===s.id);
+function validReadingDate(value){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||""))return false;
+  const date=new Date(value+"T00:00:00Z");
+  return Number.isFinite(date.valueOf()) && date.toISOString().slice(0,10)===value;
+}
+function readPassageLink(params){
+  const iso=params.get("d"), sec=params.get("sec"), pos=params.get("p");
+  if(!validReadingDate(iso) || !SECTIONS.some(section=>section.id===sec))return null;
+  if(pos && (pos.length>96 || /[\x00-\x1f]/.test(pos)))return {iso,sec,pos:null,scrolled:false};
+  return {iso,sec,pos:pos||null,scrolled:false};
+}
+function passageUrl(iso, sec, pos){
+  const u=new URL(SITE);
+  u.searchParams.set("d",iso);u.searchParams.set("sec",sec);u.searchParams.set("p",pos);
+  return u.toString();
+}
+function clearPassageLink(){
+  if(!linkedReading)return;
+  linkedReading=null;
+  const u=new URL(location.href);
+  u.searchParams.delete("sec");u.searchParams.delete("p");u.searchParams.delete("d");
+  history.replaceState(null,"",u);
+}
+function scrollLinkedPassage(my){
+  if(my!==state.token || !linkedReading || linkedReading.scrolled || linkedReading.iso!==state.iso)return;
+  const section=document.getElementById("s-"+linkedReading.sec);
+  if(!section)return;
+  const verses=[...section.querySelectorAll(".v[data-pos]")];
+  if(!verses.length)return;
+  const target=verses.find(verse=>verse.dataset.pos===linkedReading.pos) || section;
+  linkedReading.scrolled=true;
+  window.scrollTo({top:Math.max(0,window.scrollY+target.getBoundingClientRect().top-readingLineY()),behavior:"auto"});
+}
 
 function applyTheme(){
   if(settings.theme) document.documentElement.setAttribute("data-theme", settings.theme);
@@ -1274,13 +1329,16 @@ function render(){
   if(!vis.some(s=>s.id===state.active)) state.active = vis[0].id;
   const list = settings.all ? vis : [SECTIONS.find(s=>s.id===state.active)];
   $("#content").innerHTML = list.map(shell).join(`<hr class="sep">`);
-  list.forEach(sec=>fill($("#s-"+sec.id), sec, state.iso, my));
+  const loading=list.map(sec=>fill($("#s-"+sec.id), sec, state.iso, my));
+  if(linkedReading && !linkedReading.scrolled)Promise.all(loading).then(()=>requestAnimationFrame(()=>scrollLinkedPassage(my)));
   renderChips();
   renderDayCard();
 }
 
 async function setDate(iso, auto=false){
+  todayRequest++;
   const changed = !!state.iso && state.iso !== iso;
+  if(changed)clearPassageLink();
   state.iso = iso; state.auto = auto; state.hebrew = ""; syncUrl();
   if(changed && STUDY.id){
     STUDY.me = {pos:null, sec:state.active, w:null};
@@ -1296,8 +1354,16 @@ async function setDate(iso, auto=false){
   catch{ if(state.iso===iso) $("#hdate").textContent = ""; }
 }
 async function goToday(){
+  const request=++todayRequest;
   let iso = cityISO(), auto = false;
   if(settings.afterSunset && await sunsetPassed(iso)){ iso = addDays(iso,1); auto = true; }
+  if(request!==todayRequest)return;
+  const u=new URL(location.href);
+  clearPassageLink();
+  if(!STUDY.id && u.searchParams.has("d")){
+    u.searchParams.delete("d");u.searchParams.delete("sec");u.searchParams.delete("p");
+    history.replaceState(null,"",u);
+  }
   setDate(iso, auto);
 }
 
@@ -1321,6 +1387,43 @@ async function share(btn, viaWhatsApp=false){
   openWhatsApp(text+"\n"+url);
 }
 $("#waInvite").onclick = ()=>openWhatsApp(t("waInviteText")+"\n"+SITE);
+
+function openPassageShare(){
+  const dialog=$("#passageShareDlg"), picker=$("#passageShareChoice"), send=$("#passageShareSend");
+  const status=$("#passageShareStatus"), description=$("#passageShareReading");
+  const current=wordAtReadingLine($("#content"),readingLineY())?.closest(".v[data-pos]");
+  const section=(settings.all && current?.closest(".sec")) || document.getElementById("s-"+state.active);
+  const sectionInfo=SECTIONS.find(item=>item.id===section?.dataset.id);
+  const passages=[...(section?.querySelectorAll(".v[data-pos]")||[])];
+  const iso=state.iso;
+  picker.replaceChildren();
+  status.hidden=passages.length>0;
+  status.textContent=passages.length?"":t("noPassages");
+  description.textContent=sectionInfo && iso ? secTitle(sectionInfo)+" · "+iso : "";
+  for(const verse of passages){
+    const clone=verse.cloneNode(true);
+    clone.querySelectorAll(".peer-tag").forEach(tag=>tag.remove());
+    const number=clone.querySelector(".vn");
+    const prefix=number?number.textContent+" · ":"";
+    number?.remove();
+    const source=clone.textContent.trim().replace(/\s+/g," ");
+    picker.add(new Option(prefix+source.slice(0,60)+(source.length>60?"…":""),verse.dataset.pos));
+  }
+  if(current && passages.includes(current))picker.value=current.dataset.pos;
+  picker.disabled=send.disabled=!iso || !passages.length;
+  send.onclick=async ()=>{
+    const url=passageUrl(iso,sectionInfo.id,picker.value);
+    if(navigator.share){
+      try{await navigator.share({title:secTitle(sectionInfo),url});dialog.close();return;}
+      catch(error){if(error?.name==="AbortError")return;}
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      status.textContent=t("copied");status.hidden=false;
+    }catch{window.prompt(t("copyPassage"),url);}
+  };
+  dialog.showModal();
+}
 
 /* ---------- offline: save the next days ---------- */
 async function prefetch(days){
@@ -1355,6 +1458,7 @@ async function prefetch(days){
 /* ---------- events ---------- */
 $("#chips").addEventListener("click", e=>{
   const b = e.target.closest(".chip"); if(!b) return;
+  if(linkedReading && b.dataset.id!==linkedReading.sec)clearPassageLink();
   state.active = b.dataset.id;
   if(!settings.all && STUDY.id){ STUDY.me = {pos:null, sec:state.active, w:null}; STUDY.sentKey = ""; studyTick(true); }
   if(settings.all){ const el = $("#s-"+b.dataset.id); if(el) el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); renderChips(); }
@@ -1410,8 +1514,9 @@ document.addEventListener("visibilitychange", ()=>{
   if(STUDY.id && document.visibilityState === "visible") studyTick(true);
 });
 addEventListener("offline", setStatus);
-$("#prevDay").onclick = ()=>setDate(addDays(state.iso,-1));
-$("#nextDay").onclick = ()=>setDate(addDays(state.iso,1));
+$("#todayBtn").onclick = goToday;
+$("#prevDay").onclick = ()=>{if(state.iso)setDate(addDays(state.iso,-1));};
+$("#nextDay").onclick = ()=>{if(state.iso)setDate(addDays(state.iso,1));};
 $("#themeBtn").onclick = ()=>{
   const dark = settings.theme ? settings.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   settings.theme = dark ? "light" : "dark"; saveSettings(); applyTheme();
@@ -1939,6 +2044,7 @@ $("#toolsDlg").addEventListener("click", e=>{
   if(b.id==="tCal"){ $("#toolsDlg").close(); addToCalendar(b); return; }
   if(b.id==="tStudy"){ $("#toolsDlg").close(); studyStart(b); return; }
   if(b.id==="tImg"){ $("#toolsDlg").close(); shareImage(b); return; }
+  if(b.id==="tPassageShare"){ $("#toolsDlg").close(); openPassageShare(); return; }
   if(b.id==="tShare"){ $("#toolsDlg").close(); share(b); return; }
   if(b.id==="tWa"){ $("#toolsDlg").close(); share(b, true); return; }
 });
@@ -1946,11 +2052,16 @@ $("#tWa").insertAdjacentHTML("afterbegin", WA_ICON);
 
 /* ---------- start ---------- */
 applyTheme(); applyLang(); ping(); loadVisitorCount();
-const linked = new URLSearchParams(location.search).get("d");
-if(linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && !isNaN(Date.parse(linked))) setDate(linked);
+const initialParams=new URLSearchParams(location.search);
+const linked=initialParams.get("d"), joinId=initialParams.get("s");
+const joining=Boolean(joinId && SID_RE.test(joinId));
+if(!joining){
+  linkedReading=readPassageLink(initialParams);
+  if(linkedReading)state.active=linkedReading.sec;
+}
+if(validReadingDate(linked))setDate(linked);
 else goToday();
-const joinId = new URLSearchParams(location.search).get("s");
-if(joinId && SID_RE.test(joinId)) studyOn(joinId, true);
+if(joining)studyOn(joinId,true);
 </script>
 </body>
 </html>
