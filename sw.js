@@ -1,6 +1,8 @@
 /* יום ביומו — service worker: app shell offline + cached study texts */
-const VERSION = "yb-v14";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
+const VERSION = "yb-v15";
+// "/index.html" is not listed: Cloudflare Pages 308-redirects it to "/", and a redirected
+// response cannot answer a navigation (Chrome shows ERR_FAILED).
+const SHELL = ["/", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DATA_CACHE = "yb-data-v2";
 const MAX_DATA_ENTRIES = 180;
 async function trimDataCache(cache) {
@@ -8,6 +10,15 @@ async function trimDataCache(cache) {
   if (keys.length > MAX_DATA_ENTRIES) {
     await Promise.all(keys.slice(0, keys.length - MAX_DATA_ENTRIES).map(key => cache.delete(key)));
   }
+}
+
+// Cached homepage for offline navigations. A copy stored by an older version may be a
+// redirected response, which the browser rejects for navigations, so rebuild it clean.
+async function offlineShell() {
+  const hit = await caches.match("/", { ignoreSearch: true });
+  if (!hit) return Response.error();
+  if (!hit.redirected) return hit;
+  return new Response(await hit.blob(), { status: hit.status, statusText: hit.statusText, headers: hit.headers });
 }
 
 self.addEventListener("install", e => {
@@ -33,7 +44,7 @@ self.addEventListener("fetch", e => {
   // Only the public homepage can fall back to the offline app shell.
   if (req.mode === "navigate") {
     if (url.origin !== location.origin || !["/", "/index.html"].includes(url.pathname)) return;
-    e.respondWith(fetch(req).catch(async () => (await caches.match("/index.html")) || Response.error()));
+    e.respondWith(fetch(req).catch(offlineShell));
     return;
   }
 
