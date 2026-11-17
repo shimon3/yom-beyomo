@@ -987,15 +987,13 @@ async function loadHayomYomHebrew(el, iso, my){
           credit.append(link);
         }
         panel.append(credit);
-      }else if(data.error==="translation-not-found"){
-        panel.remove();
       }else{
-        panel.textContent="התרגום העברי אינו זמין כרגע.";
+        panel.remove();
       }
     }
   }catch{
     if(my!==state.token || !el.isConnected)return;
-    panels.forEach(panel=>{panel.textContent="התרגום העברי אינו זמין כרגע.";});
+    panels.forEach(panel=>panel.remove());
   }
   const [metadata,frenchResult]=await Promise.all([metadataPromise,frenchPromise]);
   if(my!==state.token || !el.isConnected)return;
