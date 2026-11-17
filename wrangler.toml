@@ -11,3 +11,9 @@ database_id = "99b46c17-4715-4e11-a296-1feceb15317d"
 
 [ai]
 binding = "AI"
+
+[[d1_databases]]
+binding = "TRANSLATION_CACHE"
+database_name = "yom-beyomo-translation-cache"
+database_id = "01f3d718-f63a-4b57-9e2f-a3c26ef40996"
+migrations_dir = "migrations/translation-cache"

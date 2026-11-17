@@ -185,7 +185,7 @@ footer a{color:inherit}
 .tanya-translation-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 22px;font-family:var(--f-ui)}
 .tanya-translation-tools small{font-size:.78rem;color:var(--muted)}
 .tanya-fr{direction:ltr;text-align:left;font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui);background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:clamp(12px,1.8vw,18px);margin:0 0 18px;color:var(--ink)}
-.tanya-fr-head,.hy-french-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.tanya-fr-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
 .tanya-fr small{display:block;font-size:.78rem;color:var(--muted)}
 .tanya-fr-body{display:block;max-width:78ch}
 .tanya-fr-body[hidden],.hy-french-content[hidden]{display:none}
@@ -198,8 +198,7 @@ footer a{color:inherit}
 .hy-translation-panel[hidden]{display:none}
 .hy-french-panel{direction:ltr;text-align:left;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:clamp(12px,1.8vw,18px);margin:0 0 16px;color:var(--ink);font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui)}
 .hy-french-panel p{max-width:78ch;margin:8px 0 0;overflow-wrap:anywhere}
-.hy-french-head strong{font-size:1.05em}
-@media(max-width:600px){.hy-french-head,.tanya-fr-head{align-items:flex-start}.hy-french-panel,.tanya-fr{font-size:1rem;line-height:1.7}}
+@media(max-width:600px){.tanya-fr-head{align-items:flex-start}.hy-french-panel,.tanya-fr{font-size:1rem;line-height:1.7}}
 .hy-study-meta{direction:ltr;text-align:left;border-bottom:1px solid var(--line);margin:0 0 12px;padding:0 0 8px;font:400 .9rem/1.6 var(--f-ui)}
 .hy-study-meta p{margin:3px 0}
 .hy-translation-panel p{margin:6px 0 10px}
@@ -933,7 +932,9 @@ function textHTML(sec, data){
         : '<div class="msg" dir="auto">'+(settings.lang==="fr"?"Le texte complet est disponible à la source.":"הטקסט המלא זמין באתר המקור.")+'</div>';
       const warning=r.machine&&!r.checked?'<div class="src" dir="auto">'+(settings.lang==="fr"?"Texte issu d’une reconnaissance automatique, non relu.":"טקסט מזיהוי אוטומטי, טרם נבדק.")+'</div>':"";
       const translation='<div class="hy-translation-panel" dir="rtl" lang="he" role="status"><strong>תרגום לעברית</strong><p>טוען תרגום ממקור קיים…</p></div>';
-      const french='<div class="hy-french-panel" dir="ltr" lang="fr" role="status"><strong>Traduction française</strong><p>Chargement…</p></div>';
+      const french=ri===(data.readings||[]).length-1
+        ? '<div class="hy-french-panel" dir="ltr" lang="fr"><button type="button" class="tool translation-toggle">Traduire en français</button><div class="hy-french-content" role="status" hidden></div></div>'
+        : "";
       return '<div dir="rtl" lang="he">'+body+'</div>'+translation+french+warning+'<div class="src" dir="auto">'+esc(t("source"))+': '+esc(r.credit||"")+(r.licence?" · "+esc(r.licence):"")+' '+source+'</div>';
     }).join("");
   }
@@ -959,15 +960,11 @@ function errText(e){
 }
 async function loadHayomYomHebrew(el, iso, my){
   const panels=[...el.querySelectorAll(".hy-translation-panel")];
-  const frenchPanels=[...el.querySelectorAll(".hy-french-panel")];
-  if(!panels.length && !frenchPanels.length)return;
+  if(!panels.length)return;
   const api="https://hayom-yom-api.shmouel6.workers.dev";
   const metadataPromise=fetch(api+"/api/days/"+encodeURIComponent(iso),{
     signal:AbortSignal.timeout(10000)
   }).then(async response=>response.ok?response.json():null).catch(()=>null);
-  const frenchPromise=fetch(api+"/api/translations/"+encodeURIComponent(iso)+"?lang=fr",{
-    cache:"no-store", signal:AbortSignal.timeout(10000)
-  }).then(async response=>({response,data:await response.json()})).catch(()=>null);
   let translation=null;
   try{
     const response=await fetch("/api/hayomyom-translation?date="+encodeURIComponent(iso),{
@@ -995,7 +992,7 @@ async function loadHayomYomHebrew(el, iso, my){
     if(my!==state.token || !el.isConnected)return;
     panels.forEach(panel=>panel.remove());
   }
-  const [metadata,frenchResult]=await Promise.all([metadataPromise,frenchPromise]);
+  const metadata=await metadataPromise;
   if(my!==state.token || !el.isConnected)return;
   const content=el.querySelector(".text");
   const oldSchedule=content?.querySelector(".hy-study-meta");
@@ -1013,32 +1010,83 @@ async function loadHayomYomHebrew(el, iso, my){
     }
     if(schedule.childElementCount)content.prepend(schedule);
   }
-  const french=frenchResult?.data;
-  for(const [index,panel] of frenchPanels.entries()){
-    panel.replaceChildren();
-    const heading=document.createElement("strong");heading.textContent="Traduction française";
-    const head=document.createElement("div");head.className="hy-french-head";head.append(heading);
-    panel.append(head);
-    if(frenchResult?.response.ok && french?.date===iso && french.language==="fr" && typeof french.translation==="string" && french.translation.trim()){
-      const body=document.createElement("div");body.className="hy-french-content";body.id="hy-french-"+iso+"-"+index;
-      const paragraph=document.createElement("p");paragraph.textContent=french.translation;body.append(paragraph);
-      const toggle=document.createElement("button");toggle.type="button";toggle.className="tool translation-toggle";toggle.textContent="Masquer";
-      toggle.setAttribute("aria-controls",body.id);toggle.setAttribute("aria-expanded","true");
-      toggle.addEventListener("click",()=>{
-        body.hidden=!body.hidden;
-        toggle.textContent=body.hidden?"Afficher":"Masquer";
-        toggle.setAttribute("aria-expanded",String(!body.hidden));
-      });
-      head.append(toggle);panel.append(body);
-    }else{
-      const paragraph=document.createElement("p");
-      paragraph.textContent=frenchResult?.response.status===404
-        ? "Aucune traduction française enregistrée pour cette date."
-        : "La traduction française est temporairement indisponible.";
-      panel.append(paragraph);
-    }
-  }
 }
+
+function setupHayomYomFrench(el, iso, my){
+  const panel=el.querySelector(".hy-french-panel");
+  if(!panel)return;
+  const button=panel.querySelector("button");
+  const body=panel.querySelector(".hy-french-content");
+  body.id="hy-french-"+iso;
+  button.setAttribute("aria-controls",body.id);
+  button.setAttribute("aria-expanded","false");
+  let loaded=false;
+
+  function setVisible(visible){
+    body.hidden=!visible;
+    button.setAttribute("aria-expanded",String(visible));
+  }
+
+  button.addEventListener("click",async ()=>{
+    if(loaded){
+      setVisible(body.hidden);
+      button.textContent=body.hidden?"Afficher la traduction":"Masquer la traduction";
+      return;
+    }
+
+    button.disabled=true;
+    setVisible(true);
+    body.textContent="Traduction en cours…";
+    try{
+      const response=await fetch("/api/hayomyom-french?date="+encodeURIComponent(iso),{
+        signal:AbortSignal.timeout(35000)
+      });
+      const data=await response.json();
+      if(my!==state.token || !el.isConnected)return;
+      if(!response.ok){
+        const messages={
+          "translation-daily-limit":"Le quota quotidien de nouvelles traductions est atteint. Réessaie demain.",
+          "translation-in-progress":"Cette traduction est déjà en cours. Réessaie dans quelques instants.",
+          "hebrew-version-unavailable":"La traduction française est indisponible pour ce passage en yiddish.",
+          "translation-not-found":"Aucun texte à traduire pour cette date."
+        };
+        body.textContent=messages[data.error]||"La traduction française est temporairement indisponible.";
+        button.textContent="Réessayer";
+        return;
+      }
+      if(data.date!==iso || data.language!=="fr" || typeof data.translation!=="string" || !data.translation.trim())
+        throw new Error("invalid-translation");
+
+      body.replaceChildren();
+      for(const text of data.paragraphs||[data.translation]){
+        const paragraph=document.createElement("p");
+        paragraph.textContent=text;
+        body.append(paragraph);
+      }
+      if(data.machine || data.generated || data.attributions?.length){
+        const credit=document.createElement("small");
+        credit.textContent="Traduction automatique, à vérifier.";
+        for(const source of data.attributions||[]){
+          if(!/^https:\/\//.test(source.url||""))continue;
+          const link=document.createElement("a");
+          link.href=source.url;link.target="_blank";link.rel="noopener noreferrer";
+          link.textContent=[source.name,source.license].filter(Boolean).join(" · ");
+          credit.append(document.createTextNode(" "),link);
+        }
+        body.append(credit);
+      }
+      loaded=true;
+      button.textContent="Masquer la traduction";
+    }catch{
+      if(my!==state.token || !el.isConnected)return;
+      body.textContent="La traduction française est temporairement indisponible.";
+      button.textContent="Réessayer";
+    }finally{
+      button.disabled=false;
+    }
+  });
+}
+
 async function fill(el, sec, iso, my){
   try{
     const data = await loadSection(sec.id, iso);
@@ -1048,7 +1096,10 @@ async function fill(el, sec, iso, my){
     refreshStudy();
     if(STUDY.id) requestAnimationFrame(trackMe);
     if(sec.id==="tanya" && settings.tanyaFrench) showTanyaFrench(el);
-    if(sec.id==="hayomyom") loadHayomYomHebrew(el,iso,my);
+    if(sec.id==="hayomyom"){
+      setupHayomYomFrench(el,iso,my);
+      loadHayomYomHebrew(el,iso,my);
+    }
   }catch(e){
     if(my!==state.token) return;
     el.querySelector(".text").innerHTML = `<div class="msg" dir="auto">${esc(errText(e))}<br><button class="tool" data-retry="1">${t("retry")}</button></div>`;

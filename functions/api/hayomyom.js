@@ -23,16 +23,19 @@ export async function onRequestGet({request}) {
       const fromLibrary=item.data?.body?.profile==="chabad-library"||item.editions?.some(e=>e.source==="chabadlibrary");
       const creditAllowed=/^https:\/\/(?:www\.)?chabadlibrary\.org\//.test(url)&&
         (source.rights?(source.rights==="credit"||source.rights==="open"):fromLibrary);
-      const paragraphs=[];
+      const paragraphs=[],studyParagraphs=[];
       if(creditAllowed&&version&&Array.isArray(version.segments)){
         for(const segment of version.segments){
           const lines=Array.isArray(segment.text)?segment.text:[segment.text];
           const paragraph=lines.map(part=>typeof part==="string"?part:(part&&typeof part.text==="string"?part.text:(part&&part.br?" ":""))).join("").replace(/\s+/g," ").trim();
-          if(paragraph)paragraphs.push(paragraph);
+          if(paragraph){
+            paragraphs.push(paragraph);
+            if(/^p\d+$/.test(segment.id||""))studyParagraphs.push(paragraph);
+          }
         }
       }
       readings.push({
-        label:plain(item.data?.label?.he||item.label?.he),paragraphs,
+        label:plain(item.data?.label?.he||item.label?.he),paragraphs,studyParagraphs,
         credit:source.credit||version?.credit||"ספריית ליובאוויטש",
         licence:source.licence||version?.licence||"unspecified",
         url,external:!paragraphs.length,
