@@ -182,7 +182,7 @@ footer a{color:inherit}
 .a2hs .x{flex:none;border:0;background:transparent;color:var(--muted);font-size:1.3rem;line-height:1;padding:0 2px}
 
 /* French translation layout and visibility controls */
-.tanya-translation-tools{margin:4px 0 10px;text-align:left}
+.tanya-translation-tools{margin-top:3px}
 .tanya-french-action{display:inline-flex;align-items:center;gap:8px;min-height:44px;
   padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);
   text-align:left;font:600 .875rem/1.3 var(--f-ui)}
@@ -191,22 +191,33 @@ footer a{color:inherit}
   border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-2px) rotate(45deg)}
 .tanya-french-action[aria-pressed="true"]::after{transform:translateY(2px) rotate(225deg)}
 @media(hover:hover){.tanya-french-action:hover span{text-decoration:underline}}
-.tanya-fr{direction:ltr;text-align:left;font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui);
-  background:var(--surface);border:1px solid var(--line);border-inline-start:3px solid var(--accent);
-  border-radius:12px;overflow:hidden;margin:4px 0 18px;color:var(--ink)}
-.tanya-fr-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 12px 0 14px;
-  background:var(--accent-soft)}
-.tanya-fr-head small{font:700 .82rem/1.3 var(--f-ui);color:var(--accent)}
-.tanya-fr-head button{min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--ink);
-  font:700 .85rem/1.2 var(--f-ui);white-space:nowrap}
-.tanya-fr-head button:hover{text-decoration:underline}
-.tanya-fr-head button:focus-visible{outline-offset:-3px}
-.tanya-fr-body{display:block;max-width:78ch;padding:11px 14px 13px;overflow-wrap:anywhere}
-.tanya-fr-body[aria-busy="true"],.tanya-fr-body[data-state="error"]{color:var(--muted)}
-.tanya-fr-body[hidden],.hy-french-content[hidden]{display:none}
+.tanya-fr{--translation-bg:#f0f5fa;--translation-border:#d6e1ed;--translation-ink:#24364c;
+  --translation-muted:#4f627a;--translation-action:#365978;
+  direction:ltr;text-align:left;max-width:66ch;margin:8px auto 22px 0;
+  padding:4px clamp(12px,3vw,20px) 0;background:var(--translation-bg);
+  color:var(--translation-ink);border:1px solid var(--translation-border);border-radius:12px;
+  font:400 clamp(1rem,1.3vw,1.125rem)/1.8 var(--f-ui)}
+:root[data-theme="dark"] .tanya-fr{--translation-bg:#192535;--translation-border:#32465d;
+  --translation-ink:#dce7f4;--translation-muted:#a8bacd;--translation-action:#a8cbed}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tanya-fr{
+  --translation-bg:#192535;--translation-border:#32465d;--translation-ink:#dce7f4;
+  --translation-muted:#a8bacd;--translation-action:#a8cbed}}
+.tanya-fr-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:48px}
+.tanya-fr-meta{display:grid;gap:2px;font:600 .875rem/1.25 var(--f-ui)}
+.tanya-fr-meta small{font-size:.75rem;font-weight:400;color:var(--translation-muted)}
+.tanya-fr-head button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;
+  border:0;border-radius:6px;background:transparent;color:var(--translation-action);
+  font:600 .85rem/1.2 var(--f-ui);white-space:nowrap}
+.tanya-fr-head button::after{content:"";width:5px;height:5px;border:solid currentColor;border-width:0 1.5px 1.5px 0;
+  transform:translateY(-2px) rotate(45deg)}
+.tanya-fr-head button[aria-expanded="true"]::after{transform:translateY(2px) rotate(225deg)}
+@media(hover:hover){.tanya-fr-head button:hover{text-decoration:underline}}
+.tanya-fr-content{border-top:1px solid var(--translation-border)}
+.tanya-fr-body{max-width:62ch;padding:10px 0 14px;white-space:pre-line;overflow-wrap:anywhere}
+.tanya-fr-body[aria-busy="true"],.tanya-fr-body[data-state="error"]{color:var(--translation-muted)}
 .translation-toggle{flex:none;white-space:nowrap;font:500 .84rem/1.2 var(--f-ui)}
 .tanya-word-tip{display:block;width:fit-content;max-width:min(100%,78ch);direction:ltr;text-align:left;font:400 .9rem/1.5 var(--f-ui);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0 12px;overflow-wrap:anywhere}
-.tanya-fr-retry{margin:0 14px 12px;min-height:44px;font:600 .875rem/1.2 var(--f-ui)}
+.tanya-fr-retry{margin:0 0 12px;min-height:44px;font:600 .875rem/1.2 var(--f-ui)}
 
 /* Source-backed Hebrew and French translations for Hayom Yom */
 .hy-translation-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;font-family:var(--f-ui)}
@@ -214,7 +225,7 @@ footer a{color:inherit}
 .hy-translation-panel[hidden]{display:none}
 .hy-french-panel{direction:ltr;text-align:left;background:var(--surface);border-inline-start:3px solid var(--accent);border-radius:8px;padding:clamp(12px,1.8vw,18px);margin:0 0 16px;color:var(--ink);font:400 clamp(1rem,1.05vw,1.125rem)/1.75 var(--f-ui)}
 .hy-french-panel p{max-width:78ch;margin:8px 0 0;overflow-wrap:anywhere}
-@media(max-width:600px){.hy-french-panel,.tanya-fr{font-size:1rem;line-height:1.7}}
+@media(max-width:600px){.hy-french-panel{font-size:1rem;line-height:1.7}}
 .hy-study-meta{direction:ltr;text-align:left;border-bottom:1px solid var(--line);margin:0 0 12px;padding:0 0 8px;font:400 .9rem/1.6 var(--f-ui)}
 .hy-study-meta p{margin:3px 0}
 .hy-translation-panel p{margin:6px 0 10px}
@@ -916,9 +927,12 @@ async function showTanyaFrench(secEl){
     if(secEl.querySelector('.tanya-fr[data-source-pos="'+sourcePos+'"]')) continue;
     const div=document.createElement("div");div.className="tanya-fr";div.dir="ltr";div.lang="fr";div.dataset.sourcePos=sourcePos;
     const head=document.createElement("div");head.className="tanya-fr-head";
-    const label=document.createElement("small");label.textContent="Français · traduction automatique";
+    const label=document.createElement("div");label.className="tanya-fr-meta";
+    const language=document.createElement("strong");language.textContent="Français";
+    const note=document.createElement("small");note.textContent="Traduction automatique";
+    label.append(language,note);
     const body=document.createElement("div");body.className="tanya-fr-body";body.setAttribute("role","status");
-    const content=document.createElement("div");content.id="tanya-fr-"+index;
+    const content=document.createElement("div");content.className="tanya-fr-content";content.id="tanya-fr-"+index;
     const toggle=document.createElement("button");toggle.type="button";toggle.textContent="Masquer";
     toggle.setAttribute("aria-controls",content.id);toggle.setAttribute("aria-expanded","true");
     toggle.addEventListener("click",()=>{
@@ -941,7 +955,7 @@ async function showTanyaFrench(secEl){
 }
 const tanyaFrenchLabel=()=>settings.tanyaFrench?"Masquer le français":"Traduire en français";
 function tanyaControls(){
-  return '<div class="tanya-translation-tools" dir="ltr" lang="fr"><button type="button" class="tanya-french-action" data-tanya-french="1" aria-pressed="'+settings.tanyaFrench+'"><span data-tanya-french-label>'+tanyaFrenchLabel()+'</span></button></div>';
+  return '<div class="tanya-translation-tools"><button type="button" class="tanya-french-action" dir="ltr" lang="fr" data-tanya-french="1" aria-pressed="'+settings.tanyaFrench+'"><span data-tanya-french-label>'+tanyaFrenchLabel()+'</span></button></div>';
 }
 function textHTML(sec, data){
   if(sec.id==="hayomyom"){
@@ -962,7 +976,7 @@ function textHTML(sec, data){
   if(!data.groups.length && data.link)
     return `<div class="msg">${esc(t("smOther"))} <span class="he">${esc(data.note||"")}</span><br><a href="${data.link}" target="_blank" rel="noopener">${esc(t("smLink"))}</a></div>`;
   const strip = s => settings.nikud ? s : s.replace(/[֑-ֽֿ-ׂׄ-ׇ]/g,"");
-  return (sec.id==="tanya" ? tanyaControls() : "") + data.groups.map(g=>`<h2>${esc(g.title)}</h2>` + (sec.flow ? "<p>" : "") +
+  return data.groups.map(g=>`<h2>${esc(g.title)}</h2>` + (sec.flow ? "<p>" : "") +
     g.rows.map(r=>{
       const tag = sec.flow ? "span" : "p";
       const num = g.rows.length>1 || sec.id!=="seferhamitzvot" ? `<span class="vn">${gem(r.v)}</span>` : "";
@@ -1113,6 +1127,7 @@ async function fill(el, sec, iso, my){
     if(my!==state.token) return;
     const sub = el.querySelector(".sub"); sub.textContent = data.sub; sub.dir = "auto";
     el.querySelector(".text").innerHTML = textHTML(sec, data);
+    if(sec.id==="tanya") sub.insertAdjacentHTML("afterend",tanyaControls());
     refreshStudy();
     if(STUDY.id) requestAnimationFrame(trackMe);
     if(sec.id==="tanya" && settings.tanyaFrench) showTanyaFrench(el);
