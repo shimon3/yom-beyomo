@@ -1601,11 +1601,15 @@ function deviceId(){
   if(!id){ id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,10)); store.set("uid", id); }
   return id;
 }
+/* Same day as the server: the Israel calendar day, whatever the device's time zone. */
+const israelDay = () => new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Jerusalem"}).format(new Date());
+const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|whatsapp|telegram|embedly|quora|bingpreview|phantom|puppeteer|playwright|selenium/i;
+/* Returns a promise so the visible counter can wait for this device to be counted first. */
 function ping(){
-  if(!onSite || navigator.doNotTrack==="1") return;
-  const day = isoOf(new Date());
-  if(store.get("ping")===day) return;
-  fetch("/api/ping", {method:"POST", headers:{"content-type":"application/json"}, keepalive:true,
+  if(!onSite || navigator.doNotTrack==="1" || navigator.webdriver || BOT_UA.test(navigator.userAgent)) return Promise.resolve();
+  const day = israelDay();
+  if(store.get("ping")===day) return Promise.resolve();
+  return fetch("/api/ping", {method:"POST", headers:{"content-type":"application/json"}, keepalive:true,
     body:JSON.stringify({uid:deviceId(), lang:settings.lang, city:settings.city, standalone:matchMedia("(display-mode: standalone)").matches})})
     .then(r=>{ if(r.ok) store.set("ping", day); }).catch(()=>{});
 }
@@ -2052,7 +2056,9 @@ $("#toolsDlg").addEventListener("click", e=>{
 $("#tWa").insertAdjacentHTML("afterbegin", WA_ICON);
 
 /* ---------- start ---------- */
-applyTheme(); applyLang(); ping(); loadVisitorCount();
+applyTheme(); applyLang();
+/* Count this device before reading the number, but never wait more than 1.5 s for it. */
+Promise.race([ping(), new Promise(r=>setTimeout(r, 1500))]).then(loadVisitorCount);
 const initialParams=new URLSearchParams(location.search);
 const linked=initialParams.get("d"), joinId=initialParams.get("s");
 const joining=Boolean(joinId && SID_RE.test(joinId));

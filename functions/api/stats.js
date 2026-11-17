@@ -4,8 +4,10 @@ const respond=(data,status=200)=>new Response(JSON.stringify(data),{
 });
 const needed={
  visits:["day","uid","lang","city","standalone"],
- feedback:["created","uid","rating","message","contact","lang","page"]
+ feedback:["created","uid","rating","message","contact","lang","page"],
+ ping_rejects:["day","reason","n"]
 };
+const israelDay=(ms=Date.now())=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem"}).format(new Date(ms));
 export async function onRequestGet({request,env}) {
  const auth=await requireStatsAccess(request,env);
  if(auth) return auth;
@@ -19,13 +21,24 @@ export async function onRequestGet({request,env}) {
    }
    if(Object.values(schema).some(x=>!x.exists || x.missing.length))
      return respond({error:"D1 schema incomplete",schema},503);
-   const [totals,daily,langs,cities,feedback]=await Promise.all([
+   const d7=israelDay(Date.now()-6*86400000), d30=israelDay(Date.now()-29*86400000);
+   const [totals,summary,daily,rejects,langs,cities,feedback]=await Promise.all([
      env.DB.prepare("SELECT COUNT(*) AS visits, COUNT(DISTINCT uid) AS devices FROM visits").first(),
-     env.DB.prepare("SELECT day, COUNT(*) AS visits, COUNT(DISTINCT uid) AS devices FROM visits GROUP BY day ORDER BY day DESC LIMIT 90").all(),
+     env.DB.prepare(`SELECT
+       (SELECT COUNT(DISTINCT uid) FROM visits WHERE day>=?1) AS active7,
+       (SELECT COUNT(DISTINCT uid) FROM visits WHERE day>=?2) AS active30,
+       (SELECT COUNT(DISTINCT uid) FROM visits WHERE day>=?2 AND standalone=1) AS installed30,
+       (SELECT COUNT(*) FROM (SELECT uid FROM visits WHERE day>=?2 GROUP BY uid HAVING COUNT(*)>=2)) AS returning30`).bind(d7,d30).first(),
+     /* "new" = first day this device appears in the 90 kept days */
+     env.DB.prepare(`SELECT v.day, COUNT(*) AS devices,
+       SUM(CASE WHEN EXISTS (SELECT 1 FROM visits w WHERE w.uid=v.uid AND w.day<v.day) THEN 0 ELSE 1 END) AS new_devices,
+       SUM(v.standalone) AS installed
+       FROM visits v GROUP BY v.day ORDER BY v.day DESC LIMIT 90`).all(),
+     env.DB.prepare("SELECT day, reason, n FROM ping_rejects WHERE day>=?1 ORDER BY day DESC").bind(d30).all(),
      env.DB.prepare("SELECT COALESCE(NULLIF(lang,''),'unknown') AS name, COUNT(*) AS visits FROM visits GROUP BY name ORDER BY visits DESC LIMIT 20").all(),
      env.DB.prepare("SELECT COALESCE(NULLIF(city,''),'unknown') AS name, COUNT(*) AS visits FROM visits GROUP BY name ORDER BY visits DESC LIMIT 30").all(),
      env.DB.prepare("SELECT created,rating,message,contact,lang,page FROM feedback ORDER BY created DESC LIMIT 100").all()
    ]);
-   return respond({totals,daily:daily.results||[],languages:langs.results||[],cities:cities.results||[],feedback:feedback.results||[],schema});
+   return respond({totals,summary,daily:daily.results||[],rejects:rejects.results||[],languages:langs.results||[],cities:cities.results||[],feedback:feedback.results||[],schema});
  } catch(e) { console.error("Stats query failure",e); return respond({error:"Database query failed"},503); }
 }

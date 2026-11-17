@@ -65,8 +65,14 @@ La page ne doit pas être mise en ligne avant configuration et test de l'applica
    `PRAGMA table_info(visits)`, `PRAGMA table_info(feedback)`.
    Tables attendues par le code existant :
    `visits(day, uid, lang, city, standalone)` avec unicité `(day,uid)` ;
-   `feedback(created, uid, rating, message, contact, lang, page)`.
-   Cette modification ne crée aucune table, n'efface rien et n'ajoute aucune migration.
+   `feedback(created, uid, rating, message, contact, lang, page)` ;
+   `ping_ip(day, h, n)` et `ping_rejects(day, reason, n)` (filtre anti-gonflement du compteur) :
+   ```sql
+   CREATE TABLE IF NOT EXISTS ping_ip (day TEXT NOT NULL, h TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, h));
+   CREATE TABLE IF NOT EXISTS ping_rejects (day TEXT NOT NULL, reason TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, reason));
+   ```
+   `ping_ip.h` est un hash SHA-256 salé de l'IP qui change chaque jour (variable optionnelle `PING_SALT`) ;
+   l'IP n'est jamais stockée et ces lignes sont effacées après 2 jours.
 4. Tester sans authentification `/stats` et `/api/stats` : aucun chiffre ni message privé ne doit être rendu.
    Puis authentifié : consulter graphiques, langues, villes sélectionnées et avis ; tester une erreur D1.
    Vérifier l'absence de cache public pour les réponses et l'absence d'indexation.
