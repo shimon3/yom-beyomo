@@ -2,6 +2,27 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
+<script>
+/* Fallback only when the application fails to initialize; cannot recover DNS/TLS failures. */
+(function(){
+  if(location.hostname !== 'yombeyomo.com' && location.hostname !== 'www.yombeyomo.com') return;
+  var backup='https://yom-beyomo.pages.dev';
+  var timer=setTimeout(function(){
+    if(window.__yomBeyomoReady || document.visibilityState==='hidden') return;
+    try {
+      if(sessionStorage.getItem('yb_fallback_attempted')) return;
+      sessionStorage.setItem('yb_fallback_attempted','1');
+    } catch(e) { return; }
+    location.replace(backup+location.pathname+location.search+location.hash);
+  },8000);
+  window.__yomBeyomoMarkReady=function(){
+    window.__yomBeyomoReady=true;
+    clearTimeout(timer);
+    try { sessionStorage.removeItem('yb_fallback_attempted'); } catch(e) {}
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>יום ביומו</title>
 <meta name="description" content="הלימוד היומי: חומש עם רש״י, תהילים, תניא, רמב״ם, משנה ודף יומי">
@@ -2069,6 +2090,7 @@ if(!joining){
 if(validReadingDate(linked))setDate(linked);
 else goToday();
 if(joining)studyOn(joinId,true);
+if(window.__yomBeyomoMarkReady)window.__yomBeyomoMarkReady();
 </script>
 </body>
 </html>
