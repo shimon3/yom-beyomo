@@ -148,6 +148,9 @@ dialog.dlg:not([open]){display:none}
 .hint{color:var(--muted);font-size:.8rem}
 .offline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dlg-foot{display:flex;gap:8px}
+.about{color:var(--muted);font-size:.85rem;line-height:1.6;padding:0 16px 18px}
+.about h2{font-family:var(--f-text);font-size:1rem;color:var(--ink);margin:0 0 6px}
+.about p{margin:0 0 8px}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:7px 16px;font-weight:700}
 footer{color:var(--muted);font-size:.78rem;text-align:center;padding:0 16px calc(30px + env(safe-area-inset-bottom,0px))}
 footer a{color:inherit}
@@ -241,6 +244,9 @@ footer a{color:inherit}
 .hy-translation-panel p{margin:6px 0 10px}
 .hy-translation-panel small{font-family:var(--f-ui);font-size:.75rem;color:var(--muted)}
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"יום ביומו","alternateName":"Yom Beyomo","url":"https://yombeyomo.com/","inLanguage":["he","fr"],"description":"הלימוד היומי בדף אחד: חומש עם רש״י, תהילים, תניא, היום יום, רמב״ם, ספר המצוות, משנה ודף יומי"}
+</script>
 </head>
 <body>
 <header class="top">
@@ -283,6 +289,11 @@ footer a{color:inherit}
 <aside class="wrap links" id="links">
   <button type="button" id="fbOpen"><b data-t="fbCard"></b><span data-t="fbCardSub"></span></button>
 </aside>
+<section class="wrap about" aria-labelledby="aboutTitle">
+  <h2 id="aboutTitle">יום ביומו — הלימוד היומי בדף אחד</h2>
+  <p>יום ביומו מרכז כל יום את שיעורי חת״ת והלימוד היומי לפי התאריך העברי: חומש עם רש״י לפי פרשת השבוע, תהילים לפי מחזור החודש, תניא, היום יום, רמב״ם (שלושה פרקים או פרק אחד), ספר המצוות, משנה יומית ודף יומי. האתר חינמי, בלי הרשמה ובלי פרסומות, מותאם לטלפון, מאפשר לימוד ללא אינטרנט לשבת ולחג, ולימוד משותף עם חבר.</p>
+  <p lang="fr" dir="ltr">Yom Beyomo réunit chaque jour l’étude quotidienne selon la date hébraïque : Houmach avec Rachi, Tehilim, Tanya, Hayom Yom, Rambam, Sefer HaMitsvot, Michna et Daf Yomi. Gratuit, sans inscription ni publicité, pensé pour le téléphone et disponible hors connexion.</p>
+</section>
 <footer><span data-t="footTexts"></span> <a href="https://www.sefaria.org" target="_blank" rel="noopener">Sefaria</a> · <span data-t="footDates"></span> <a href="https://www.hebcal.com" target="_blank" rel="noopener">Hebcal</a><br><span data-t="privacy"></span></footer>
 
 <div class="a2hs" id="a2hs" role="dialog" aria-labelledby="a2hsTitle" hidden>
