@@ -22,6 +22,7 @@ export async function onRequestGet({request,env}) {
    if(Object.values(schema).some(x=>!x.exists || x.missing.length))
      return respond({error:"D1 schema incomplete",schema},503);
    const d7=israelDay(Date.now()-6*86400000), d30=israelDay(Date.now()-29*86400000);
+   await env.DB.prepare("CREATE TABLE IF NOT EXISTS visit_details (day TEXT NOT NULL, uid TEXT NOT NULL, hour INTEGER NOT NULL, page TEXT NOT NULL, PRIMARY KEY(day,uid))").run();
    const [totals,summary,daily,rejects,langs,cities,feedback,hours,pages,retention]=await Promise.all([
      env.DB.prepare("SELECT COUNT(*) AS visits, COUNT(DISTINCT uid) AS devices FROM visits").first(),
      env.DB.prepare(`SELECT
