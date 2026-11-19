@@ -32,6 +32,7 @@ const reject = (env, day, reason) =>
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return json({ ok: false, error: "no-db" }, 503);
   const day = israelDay();
+  const hour = Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Jerusalem",hour:"2-digit",hourCycle:"h23"}).format(new Date()));
   const ua = request.headers.get("user-agent") || "";
 
   // A — robots: answer "ok" so they do not retry, but count nothing.
@@ -62,6 +63,9 @@ export async function onRequestPost({ request, env }) {
     if (row && row.n > MAX_NEW_PER_IP) { await reject(env, day, "quota"); return json({ ok: true }); }
   }
 
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS visit_details (day TEXT NOT NULL, uid TEXT NOT NULL, hour INTEGER NOT NULL, page TEXT NOT NULL, PRIMARY KEY(day,uid))").run();
+  const page = typeof b.page==="string" && /^[a-z0-9_-]{1,40}$/i.test(b.page) ? b.page : "accueil";
+  await env.DB.prepare("INSERT OR IGNORE INTO visit_details (day,uid,hour,page) VALUES (?1,?2,?3,?4)").bind(day,b.uid,hour,page).run();
   await env.DB.prepare(
     "INSERT OR IGNORE INTO visits (day, uid, lang, city, standalone) VALUES (?1, ?2, ?3, ?4, ?5)"
   ).bind(day, b.uid, clip(b.lang, 5), clip(b.city, 10), b.standalone ? 1 : 0).run();
@@ -71,6 +75,7 @@ export async function onRequestPost({ request, env }) {
     const cutoff = israelDay(Date.now() - 90 * 86400000);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM visits WHERE day < ?1").bind(cutoff),
+      env.DB.prepare("DELETE FROM visit_details WHERE day < ?1").bind(cutoff),
       env.DB.prepare("DELETE FROM ping_ip WHERE day < ?1").bind(israelDay(Date.now() - 2 * 86400000)),
       env.DB.prepare("DELETE FROM ping_rejects WHERE day < ?1").bind(cutoff),
     ]);

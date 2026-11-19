@@ -1621,7 +1621,7 @@ function ping(){
   const day = israelDay();
   if(store.get("ping")===day) return Promise.resolve();
   return fetch("/api/ping", {method:"POST", headers:{"content-type":"application/json"}, keepalive:true,
-    body:JSON.stringify({uid:deviceId(), lang:settings.lang, city:settings.city, standalone:matchMedia("(display-mode: standalone)").matches})})
+    body:JSON.stringify({uid:deviceId(), lang:settings.lang, city:settings.city, standalone:matchMedia("(display-mode: standalone)").matches, page:state.active||"accueil"})})
     .then(r=>{ if(r.ok) store.set("ping", day); }).catch(()=>{});
 }
 let fbRating = 0;
