@@ -63,6 +63,7 @@ export async function onRequestPost({ request, env }) {
     if (row && row.n > MAX_NEW_PER_IP) { await reject(env, day, "quota"); return json({ ok: true }); }
   }
 
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS visit_details (day TEXT NOT NULL, uid TEXT NOT NULL, hour INTEGER NOT NULL, page TEXT NOT NULL, PRIMARY KEY(day,uid))").run();
   const page = typeof b.page==="string" && /^[a-z0-9_-]{1,40}$/i.test(b.page) ? b.page : "accueil";
   await env.DB.prepare("INSERT OR IGNORE INTO visit_details (day,uid,hour,page) VALUES (?1,?2,?3,?4)").bind(day,b.uid,hour,page).run();
   await env.DB.prepare(
