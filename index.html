@@ -287,6 +287,7 @@ footer a{color:inherit}
 </div></div>
 
 <aside class="wrap links" id="links">
+  <a href="/rebbe-teachings.html" class="tool" style="display:inline-block;margin:8px 0" lang="he" dir="rtl">תורת הרבי · לקוטי שיחות ומאמרים ↗</a>
   <button type="button" id="fbOpen"><b data-t="fbCard"></b><span data-t="fbCardSub"></span></button>
 </aside>
 <section class="wrap about" aria-labelledby="aboutTitle">
@@ -703,7 +704,7 @@ const LOADERS = {
       try{ const rt = await fetchText(`Rashi on ${book} ${c}`); rashi[c] = Array.isArray(rt.text) ? rt.text : []; rsrc = rt; }catch{ rashi[c] = []; }
     }));
     rows.forEach(r=>{ const x = (rashi[r.c]||[])[r.v-1]; r.rashi = Array.isArray(x) ? x.map(clean).filter(Boolean) : (x ? [clean(x)] : []); });
-    return {sub:t("chumashSub")(it, idx, settings.lang==="fr"?tx.ref:tx.heRef), groups:group(rows,"פרק"), src:[tx, rsrc].filter(Boolean), frenchRefs:[tx.ref]};
+    return {sub:t("chumashSub")(it, idx, settings.lang==="fr"?tx.ref:tx.heRef), groups:group(rows,"פרק"), src:[tx, rsrc].filter(Boolean), frenchRefs:[tx.ref], rebbeParasha:it.he||it.en};
   },
   async tehillim(ctx){
     const {hd} = ctx.h, nextHd = ctx.hNext ? ctx.hNext.hd : null;
@@ -1082,7 +1083,8 @@ function textHTML(sec, data){
       if(sec.id==="chumash" && settings.rashi && r.rashi && r.rashi.length) h += `<div class="rashi"><span class="lbl">רש״י</span>${strip(r.rashi.join(" "))}</div>`;
       return h;
     }).join("") + (sec.flow ? "</p>" : "")).join("") +
-    (data.src.length ? `<div class="src" dir="auto">${t("source")}: Sefaria — ${data.src.map(s=>esc(s.vt)+(s.lic ? " ("+esc(s.lic)+")" : "")).join(" · ")}</div>` : "");
+    (data.src.length ? `<div class="src" dir="auto">${t("source")}: Sefaria — ${data.src.map(s=>esc(s.vt)+(s.lic ? " ("+esc(s.lic)+")" : "")).join(" · ")}</div>` : "") +
+    (sec.id==="chumash" && data.rebbeParasha ? `<div class="src" dir="auto"><a href="/rebbe-teachings.html?q=${encodeURIComponent(data.rebbeParasha)}" lang="he" dir="rtl">תורת הרבי על הפרשה · לקוטי שיחות ומאמרים ↗</a></div>` : "");
 }
 function errText(e){
   if(e && e.kind==="offline") return t("errOffline");

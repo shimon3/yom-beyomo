@@ -30,8 +30,8 @@ function makeSid(){return [...crypto.getRandomValues(new Uint8Array(16))].map(x=
 $("share").onclick=async()=>{if(!sid)sid=makeSid();const u=new URL(location.href);u.searchParams.set("s",sid);u.searchParams.set("q",$("q").value.trim());history.replaceState(null,"",u);try{await navigator.clipboard.writeText(u.href);text($("roomStatus"),"קישור החברותא הועתק")}catch{text($("roomStatus"),u.href)}};
 $("stop").onclick=()=>{sid=null;const u=new URL(location.href);u.searchParams.delete("s");history.replaceState(null,"",u);$("peers").replaceChildren();text($("roomStatus"),"החברותא הסתיימה")};
 async function tick(){if(!sid||busy||document.hidden)return;busy=true;try{
- const iso=new Date().toISOString().slice(0,10),sec="rebbe",pos=chosen||"none";
- const payload={uid,name:"לומד",iso,sec,pos,w:null,seq:++seq};
+ const iso=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem"}).format(new Date()),sec="rebbe",pos=chosen||"none";
+ const payload={uid,name:"לומד",iso,sec,pos:pos.slice(0,30),w:null,seq:Date.now()*1000+(++seq%1000)};
  await fetch("/api/session/"+sid,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
  const r=await fetch("/api/session/"+sid+"?uid="+encodeURIComponent(uid),{cache:"no-store"});
  if(r.ok){const d=await r.json();$("peers").replaceChildren();for(const p of d.peers||[]){const el=document.createElement("div");el.className="peer";text(el,(p.name||"לומד")+" · "+(p.pos||""));$("peers").append(el)}}
