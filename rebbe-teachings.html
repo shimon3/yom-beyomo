@@ -1,0 +1,40 @@
+<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>תורת הרבי · יום ביומו · בדיקה</title>
+<style>:root{font-family:system-ui,Arial;color:#253044;background:#f7f6f2}body{max-width:900px;margin:24px auto;padding:16px}a{color:#79500c}header,.panel{background:white;border:1px solid #ddd9ce;border-radius:14px;padding:18px;margin-bottom:14px}h1{margin:0 0 8px}input,button{font:inherit;padding:10px;border:1px solid #b7b3aa;border-radius:8px}button{cursor:pointer;background:#f1e8d7}input{width:min(100%,330px)}.entry{border-top:1px solid #ddd;padding:12px 0}.muted{color:#666;font-size:.9em}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.peer{padding:5px;background:#f5f1e8;border-radius:8px;margin:4px 0}.hidden{display:none}</style>
+<header><a href="/">← יום ביומו</a><h1>תורת הרבי על הפרשה</h1><p>לקוטי שיחות · מאמרים · תורת הרבי — תצוגת בדיקה בלבד</p><p class="muted">מציגים כותרות וקישורים למקור בלבד, ללא העתקת טקסטים מוגנים.</p></header>
+<section class="panel"><label for="q">פרשה או נושא</label><div class="tools"><input id="q" maxlength="80" placeholder="בראשית"><button id="search">חיפוש</button></div><p id="status" role="status"></p><div id="results"></div></section>
+<section class="panel"><h2>לימוד משותף · חברותא</h2><p>משתפים קישור ורואים איזה מקור החבר בחר. הטקסט עצמו נפתח אצל כל משתתף באתר המקור.</p><div class="tools"><button id="share">יצירת קישור חברותא</button><button id="stop">סיום</button></div><p id="roomStatus"></p><div id="peers"></div></section>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
+const sessionPattern=/^[a-f0-9]{32}$/, uidKey="yb-rebbe-uid";
+let uid=sessionStorage.getItem(uidKey);if(!uid){uid=crypto.randomUUID();sessionStorage.setItem(uidKey,uid)}
+let sid=sessionPattern.test(params.get("s")||"")?params.get("s"):null,chosen=null,seq=0;
+let current=[],busy=false;
+const query=params.get("q");if(query)$("q").value=query.slice(0,80);
+function text(node,value){node.textContent=String(value||"")}
+async function search(){
+ const q=$("q").value.trim();if(q.length<2||q.length>80)return text($("status"),"יש להזין לפחות שתי אותיות");
+ text($("status"),"מחפש…");$("results").replaceChildren();
+ try{const r=await fetch("/api/rebbe-teachings?q="+encodeURIComponent(q),{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const d=await r.json();current=d.results||[];
+ text($("status"),current.length+" תוצאות · יש לבדוק התאמה לפרשה לפני הלימוד");
+ for(const item of current){const box=document.createElement("article");box.className="entry";
+ const h=document.createElement("strong");text(h,item.title.he||item.title.en||item.id);
+ const p=document.createElement("p");p.className="muted";text(p,(item.kind||"")+" · "+item.id+(item.machine&&!item.checked?" · תוכן מכונה שלא נבדק":""));
+ const link=document.createElement("a");link.href=item.source;link.target="_blank";link.rel="noopener noreferrer";text(link,"למקור ↗");
+ const pick=document.createElement("button");text(pick,"ללמוד בחברותא");pick.onclick=()=>{chosen=item.id;text($("roomStatus"),"נבחר מקור: "+(item.title.he||item.id));};
+ box.append(h,p,link,document.createTextNode("  "),pick);$("results").append(box)}
+ }catch{text($("status"),"החיפוש אינו זמין כרגע. נסו שוב מאוחר יותר.")}
+}
+$("search").onclick=search;$("q").addEventListener("keydown",e=>{if(e.key==="Enter")search()});
+function makeSid(){return [...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,"0")).join("")}
+$("share").onclick=async()=>{if(!sid)sid=makeSid();const u=new URL(location.href);u.searchParams.set("s",sid);u.searchParams.set("q",$("q").value.trim());history.replaceState(null,"",u);try{await navigator.clipboard.writeText(u.href);text($("roomStatus"),"קישור החברותא הועתק")}catch{text($("roomStatus"),u.href)}};
+$("stop").onclick=()=>{sid=null;const u=new URL(location.href);u.searchParams.delete("s");history.replaceState(null,"",u);$("peers").replaceChildren();text($("roomStatus"),"החברותא הסתיימה")};
+async function tick(){if(!sid||busy||document.hidden)return;busy=true;try{
+ const iso=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem"}).format(new Date()),sec="rebbe",pos=chosen||"none";
+ const payload={uid,name:"לומד",iso,sec,pos:pos.slice(0,30),w:null,seq:Date.now()*1000+(++seq%1000)};
+ await fetch("/api/session/"+sid,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+ const r=await fetch("/api/session/"+sid+"?uid="+encodeURIComponent(uid),{cache:"no-store"});
+ if(r.ok){const d=await r.json();$("peers").replaceChildren();for(const p of d.peers||[]){const el=document.createElement("div");el.className="peer";text(el,(p.name||"לומד")+" · "+(p.pos||""));$("peers").append(el)}}
+ }catch{text($("roomStatus"),"חיבור החברותא אינו זמין כרגע")}finally{busy=false}}
+setInterval(tick,4000);if(sid)tick();if(query)search();
+</script></html>
